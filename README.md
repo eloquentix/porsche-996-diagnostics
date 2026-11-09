@@ -1,92 +1,143 @@
 # pdiag
 
-Open, modern diagnostics for K-line era water-cooled Porsches
-(986 Boxster, 996, 997.1, 987.1, Cayenne 955 — roughly 1997–2008).
-Status: **tested and improved on a real 2002 Porsche 911 (996).** Live data, fault codes,
-identification and the DME's raw Porsche data blocks work. Over-rev counters aren't
-decoded yet. Read-only by design.
+Open diagnostics for K-line era water-cooled Porsches: 986 Boxster, 996, 997.1, 987.1
+and Cayenne 955 (roughly 1997–2008). A $20 cable, a Mac, and this.
 
-## Tested on a real car
+**Try the demo first** (simulated car, no hardware): https://apps.eloquentix.com/porsche/996/
 
-| | |
+## Why this exists
+
+If you own one of these cars, or are about to buy one, the question that matters most
+is one you can't answer with a normal OBD reader: **has this engine been over-revved?**
+A missed shift (fourth into second at speed) spins the engine past redline and can bend
+valves. The engine computer remembers: it counts ignitions in six over-rev ranges and
+when the last one happened. A seller who knows this will clear the fault codes; they
+can't clear that counter.
+
+Today you read it with **Durametric** (Windows only, licensed to a handful of VINs) or a
+dealer's **PIWIS**. Generic OBD apps don't see it at all: they read emissions data, not
+Porsche data.
+
+pdiag is the open alternative: modern, read-only by design, runs on a Mac, and every
+step is logged so findings can be checked.
+
+## What works today, and what doesn't yet
+
+Tested on a 2002 911 (996) Targa, US spec, Bosch ME7.8 engine computer.
+
+| | Status |
 |---|---|
-| Car | 2002 Porsche 911 (996) Targa, US spec, Bosch ME7.8 engine computer |
-| Cable | KKL 409.1 USB cable, FTDI FT232RL, Apple's built-in driver |
-| Computer | macOS, Python 3.12 |
-| Date | 2026-10-15 |
+| Live engine data: rpm, temperatures, air flow, timing, fuel trims, O2 sensors, speed, readiness | Works (21 readings, about 7 a second) |
+| Fault codes: generic OBD and the engine computer's own | Works |
+| Clearing fault codes (asks first, saves every code before clearing) | Works |
+| Engine computer identification (VIN, part and software numbers) | Works |
+| The engine computer's 14 Porsche-specific data blocks, raw | Works (shown and logged; not all decoded) |
+| **Over-rev counters** | **Not decoded yet.** This is the project's main goal; see "How you can help". The demo shows simulated counts. |
+| Other models (986, 987.1, 997.1, 955) | Profiles exist, untested on a car |
 
-What works on that car:
-- **Generic OBD** over ISO 9141-2: all 21 readings it reports, live, including fault-lamp
-  status and readiness monitors. About 7 requests/s, so the tach needle updates ~3.5 times a second.
-- **Engine computer (DME)** over KWP2000 at address 0x11: identification, stored fault
-  codes, and its 14 Porsche-specific data blocks, shown and logged raw.
-- **Web UI** on the car: live tach, every reading, Porsche data tab, all logged to `logs/`.
+## When it's useful now
 
-What the car test changed in the code: pyserial was reprogramming the serial port on
-every read and corrupting bytes (fixed), the real DME address and fault-code request
-replaced earlier guesses, and timing margins now match measured ECU and USB behaviour.
-Details in [docs/PROTOCOL.md](docs/PROTOCOL.md) (Findings) and [docs/HARDWARE.md](docs/HARDWARE.md).
+- **Your own car, on a Mac:** live data on a 996-style cluster, check-engine codes with
+  their status, clearing them after a repair, and a log of every reading.
+- **Before buying:** fault codes, readiness monitors (all "not ready" right after a
+  clear is a red flag), and the engine computer's identity. The over-rev check comes
+  once the counters are decoded.
+- **Research:** every byte on the wire is logged, and `pdiag sniff` captures what other
+  tools do.
 
-Not tested yet: other models and years (986, 997.1, 987.1, 955), and anything that needs
-the over-rev counters decoded.
+## What you need
 
-## Setup (macOS)
+- A **K-line era water-cooled Porsche** (above). Only the 2002 996 has been tested.
+- An **FTDI-based KKL USB cable** ("VAG-COM 409.1", FT232RL chip), about $20. Not an
+  ELM327 Bluetooth dongle: those hide the raw K-line. Avoid CH340 cables: their timing is
+  too loose for the wake-up the car needs. Details: [docs/HARDWARE.md](docs/HARDWARE.md).
+- A **Mac** (macOS has the FTDI driver built in). Linux likely works with small changes;
+  Windows isn't supported yet.
+- **Python 3.11+** and **uv**.
+
+## Setup
 
 ```sh
+brew install uv                          # or: curl -LsSf https://astral.sh/uv/install.sh | sh
+git clone https://github.com/radurosu/porsche-kline-diag.git
+cd porsche-kline-diag
 uv sync
-uv run pdiag --mock ui           # web UI on http://127.0.0.1:8996, simulated car
-uv run pdiag --mock obd          # same simulated car, command line
-uv run pytest
+uv run pdiag --mock ui                   # try it with the simulated car first
+uv run pytest                            # optional: the test suite
 ```
 
-Hardware: FTDI-based **KKL** USB cable (VAG-COM 409.1 style). macOS has a
-built-in FTDI driver; the cable shows up as `/dev/cu.usbserial-XXXX`.
-See [docs/HARDWARE.md](docs/HARDWARE.md).
+## First run on the car
+
+1. Plug the cable into the car first (996: driver's footwell, left of the steering
+   column), then into the Mac. The other way round can leave the cable refusing
+   settings until it's replugged.
+2. Ignition **fully on**: dash lights and the check-engine lamp lit. In the accessory
+   position the car doesn't answer. Engine running for live data.
+3. `uv run pdiag ports` should list a `/dev/cu.usbserial-…` device.
+4. `uv run pdiag ui` opens the web UI at http://127.0.0.1:8996. Or, on the command line:
+   `uv run pdiag obd` (generic OBD summary), `uv run pdiag id` (identification),
+   `uv run pdiag dtc` (the engine computer's fault codes).
+
+Every run writes a byte-level trace to `logs/`. Those files contain your VIN; they stay
+on your machine (gitignored).
 
 ## Commands
 
 | Command | What |
 |---|---|
 | `pdiag ports` | List serial ports, flag the KKL cable |
-| `pdiag probe [--addrs 33,10,11] [--init both]` | Wake each address (5-baud and/or fast init), print keybytes |
-| `pdiag obd` | Generic OBD-II: protocol, supported PIDs, values, stored DTCs |
-| `pdiag live [--pids 0C,05,0E]` | Stream PIDs as CSV |
-| `pdiag id --addr 0x10` | DME identification (KWP 0x1A) |
-| `pdiag dtc --addr 0x10` | DME fault codes (KWP 0x18) |
-| `pdiag lid-scan --addr 0x10` | Sweep local identifiers (KWP 0x21) → `logs/` |
-| `pdiag ui` | Web UI: live tach and every reading, Porsche data blocks, fault codes, car info. Logs every reading to `logs/` |
-| `pdiag sniff` | Passive K-line capture (e.g. a Durametric session) |
+| `pdiag ui` | Web UI: live cluster, over-rev report, fault codes (with clear), Porsche data, car info |
+| `pdiag obd` | Generic OBD: protocol, supported readings, values, stored codes |
+| `pdiag live [--pids 0C,05,0E]` | Stream readings as CSV |
+| `pdiag id` | Engine computer identification (KWP 0x1A) |
+| `pdiag dtc` | Engine computer fault codes (KWP 0x18) |
+| `pdiag lid-scan [--session 0x81]` | Read every Porsche data block (KWP 0x21) to `logs/` |
+| `pdiag probe [--addrs 33,10,11] [--init both]` | Wake addresses, print keybytes |
+| `pdiag sniff` | Listen only: capture another tool's session |
 
-Global: `--port /dev/cu.usbserial-…` (or `PDIAG_PORT`), `--model 986|996|987|997` (default: detected
-from the VIN), `--mock` (+ `--mock-generic kwp`; `--model` picks the simulated car), `--no-trace`. Every hardware run writes a byte-level trace to `logs/`.
+Options: `--port /dev/cu.usbserial-…` (or `PDIAG_PORT`), `--model 986|996|987|997`
+(default: from the VIN), `--mock` for the simulated car, `--no-trace`.
+
+## Safety
+
+pdiag only reads, with one exception you have to ask for. It never sends anything that
+writes, codes, adapts or flashes the engine computer, and never asks for security access.
+**Clearing fault codes** uses the same standard command any OBD reader sends (mode 04),
+only after a confirmation dialog, and only after every code, the readiness status and
+the engine computer's own code list are saved to `logs/`. Clearing resets the readiness
+monitors, so the car may need some driving before an emissions test.
+
+You use it on your own car at your own risk.
+
+## How you can help
+
+pdiag decodes only from its own captures, never from leaked dealer software or
+proprietary tool internals. That makes data from real cars the most valuable
+contribution.
+
+1. **You have a Durametric:** this is the fastest way to the over-rev counters. Put
+   pdiag's cable on the same OBD port with a Y-splitter, run `pdiag sniff`, and read the
+   over-rev report in Durametric while it records. Note what Durametric shows. One such
+   capture likely decodes the counters for every car with the same engine computer.
+2. **You have a 986, 987.1, 997.1 or Cayenne:** run `pdiag obd`, `pdiag id` and
+   `pdiag lid-scan` and send the files from `logs/`. Tell us the model and year.
+3. **You write code:** Linux and Windows support, decoding the live bytes in data
+   blocks 04/05, a phone app with a Bluetooth K-line dongle.
+
+Open an issue with the files attached, or reach us through [Eloquentix](https://eloquentix.com).
+Please send traces privately or remove the VIN first (it's in the identification replies).
 
 ## Docs
 
-- [CLAUDE.md](CLAUDE.md) — project context, decisions, status, next steps
-- [docs/PROTOCOL.md](docs/PROTOCOL.md) — K-line / KWP2000 notes, open questions
-- [docs/HARDWARE.md](docs/HARDWARE.md) — cable, wiring, sniffing setup
-
-## Contributing
-
-The most valuable contribution is data: a `pdiag sniff` capture of another tool reading a
-car, plus notes on what that tool was showing at each moment. Decoding is clean-room only,
-so please don't submit material from leaked dealer software or proprietary tool internals.
-Scrub VINs from captures before sharing.
+- [docs/PROTOCOL.md](docs/PROTOCOL.md): K-line and KWP2000 notes, every finding with its source
+- [docs/HARDWARE.md](docs/HARDWARE.md): cable, wiring, timing, sniffing setup
+- [CLAUDE.md](CLAUDE.md): project context, decisions, status, next steps
 
 ## Disclaimer
 
 Not affiliated with, endorsed by, or connected to Dr. Ing. h.c. F. Porsche AG, Robert Bosch
-GmbH, or Durametric. Brand names are used only to describe compatibility. pdiag is read-only
-by design, but you use it on your own car at your own risk.
+GmbH, or Durametric. Brand names are used only to describe compatibility.
 
-## Credits
+## Credits and license
 
-pdiag is a project by [Eloquentix](https://eloquentix.com).
-
-## License
-
-[GPL-3.0-or-later](LICENSE).
-
-## Clearing fault codes
-
-The Fault codes tab has a **Clear fault codes** button (decision 2026-11-08). It asks first, saves every stored code, the readiness status and the engine computer's own codes to `logs/<time>-clear.jsonl`, then clears with generic OBD mode 04 (what any OBD reader sends) and reads back. Clearing resets the readiness monitors: the car may need some driving before an emissions test.
+A project by [Eloquentix](https://eloquentix.com). [GPL-3.0-or-later](LICENSE).
