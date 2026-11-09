@@ -6,3 +6,5 @@ dist/
 # Trace logs contain VIN / ECU IDs from real cars — keep private.
 logs/*
 !logs/.gitkeep
+codex/logs/
+codex/__pycache__/

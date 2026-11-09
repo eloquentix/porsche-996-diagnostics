@@ -161,6 +161,14 @@ codes, adapts, flashes or asks for security access.
 **Does it work on Windows or Linux?**
 Not yet: macOS only. Linux should need small changes; help is welcome.
 
+## What's in this repository
+
+- The root is **pdiag**: the protocol stack, decoders, command line and web UI (`src/pdiag/`).
+- [`codex/`](codex/) is an **alternate front end**: a photo-real 996 instrument panel built
+  by a second AI agent (OpenAI Codex) on top of pdiag's API, with its own guarded
+  code-clearing endpoint (also mode 04, confirmation and audit log). Demo:
+  https://apps.eloquentix.com/porsche/996Codex/
+
 ## Docs
 
 - [docs/PROTOCOL.md](docs/PROTOCOL.md): K-line and KWP2000 notes, every finding with its source

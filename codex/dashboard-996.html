@@ -1,0 +1,1248 @@
+<!doctype html>
+<html lang="en" data-theme="dark">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>996 · Instrument panel</title>
+<style>:root {
+  --paper: #E3E5E0;
+  --paper-2: #ECEEE9;
+  --ink: #1A1E22;
+  --ink-2: #59616A;
+  --rule: #C3C8C1;
+  --face: #1B2025;
+  --face-ink: #E9ECE6;
+  --face-dim: #6E777F;
+  --needle: #F25C19;
+  --amber: #B67C00;
+  --teal: #2B7466;
+  --red: #C7361F;
+  --focus: #1F6FD1;
+  --wide: 125%;
+  --narrow: 70%;
+  color-scheme: light;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --paper: #1D2226; --paper-2: #242A2F; --ink: #E6E9E4; --ink-2: #9BA4AB;
+    --rule: #353C42; --face: #111417; --face-ink: #E9ECE6; --face-dim: #5E676F;
+    --amber: #E0A73A; --teal: #55A794; --red: #E9593E; --focus: #6AA8F0;
+    color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --paper: #1D2226; --paper-2: #242A2F; --ink: #E6E9E4; --ink-2: #9BA4AB;
+  --rule: #353C42; --face: #111417; --face-ink: #E9ECE6; --face-dim: #5E676F;
+  --amber: #E0A73A; --teal: #55A794; --red: #E9593E; --focus: #6AA8F0;
+  color-scheme: dark;
+}
+
+* { box-sizing: border-box; }
+html { -webkit-text-size-adjust: 100%; }
+body {
+  margin: 0;
+  background: var(--paper);
+  color: var(--ink);
+  font-family: "Archivo", system-ui, -apple-system, "Helvetica Neue", sans-serif;
+  font-size: 16px;
+  line-height: 1.45;
+  font-variant-numeric: tabular-nums;
+}
+:focus-visible { outline: 2px solid var(--focus); outline-offset: 3px; border-radius: 2px; }
+.sr-only { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
+
+/* Masthead: the car is the headline */
+.masthead {
+  display: flex; justify-content: space-between; align-items: flex-end; gap: 24px;
+  max-width: 1180px; margin: 0 auto; padding: 40px 32px 20px;
+}
+.car h1 {
+  margin: 0;
+  font-size: clamp(40px, 7vw, 76px);
+  line-height: 0.92;
+  font-stretch: var(--wide);
+  font-weight: 800;
+  letter-spacing: -0.02em;
+}
+.car p { margin: 8px 0 0; color: var(--ink-2); font-size: 17px; }
+.link-state {
+  display: flex; align-items: center; gap: 10px;
+  font-size: 16px; color: var(--ink-2); text-align: right;
+}
+.link-state .lamp { width: 10px; height: 10px; border-radius: 50%; background: var(--rule); flex: none; }
+.link-state[data-state="ok"] .lamp { background: var(--teal); }
+.link-state[data-state="sim"] .lamp { background: var(--amber); }
+.link-state[data-state="err"] .lamp { background: var(--red); }
+.link-state strong { color: var(--ink); font-weight: 600; }
+
+/* Tabs */
+.tabs {
+  display: flex; gap: 28px; max-width: 1180px; margin: 0 auto; padding: 0 32px;
+  border-bottom: 1px solid var(--rule); overflow-x: auto; scrollbar-width: none;
+}
+.tabs a {
+  padding: 12px 0 11px; color: var(--ink-2); text-decoration: none; white-space: nowrap;
+  font-weight: 500; border-bottom: 3px solid transparent; margin-bottom: -1px;
+}
+.tabs a:hover { color: var(--ink); }
+.tabs a[aria-current="page"] { color: var(--ink); border-bottom-color: var(--needle); }
+
+main { max-width: 1180px; margin: 0 auto; padding: 32px; }
+.view-head { display: flex; justify-content: space-between; align-items: baseline; gap: 16px; margin-bottom: 24px; }
+.view-head h2, .view h2 {
+  margin: 0; font-size: 28px; font-stretch: var(--wide); font-weight: 700; letter-spacing: -0.01em;
+}
+.btn {
+  font: inherit; font-weight: 600; font-size: 15px; color: var(--ink);
+  background: transparent; border: 1.5px solid var(--ink); border-radius: 999px;
+  padding: 8px 18px; cursor: pointer;
+}
+.btn:hover { background: var(--ink); color: var(--paper); }
+.btn[disabled] { opacity: 0.5; cursor: progress; }
+
+/* Live: the dial is the one bold object */
+.live { display: block; }
+/* The 996 cluster: five round dials overlapping, the tach in front */
+.cluster { display: flex; align-items: center; justify-content: center; margin: 0 auto 36px; max-width: 1180px; }
+.dial { margin: 0; aspect-ratio: 1; position: relative; flex: none; }
+.dial svg { display: block; width: 100%; height: 100%; }
+.dial-md { width: 23.5%; z-index: 2; }
+.dial-sm { width: 16.5%; z-index: 1; }
+.dial-l1 { margin-right: -2.2%; }
+.dial-r1 { margin-left: -2.2%; }
+.dial-l2 { margin-right: -1.6%; transform: translateY(6%); }
+.dial-r2 { margin-left: -1.6%; transform: translateY(6%); }
+.tach-wrap { position: relative; margin: 0; aspect-ratio: 1; width: 38%; flex: none; z-index: 3; }
+.d-num { fill: var(--face-ink); font-family: "Archivo", sans-serif; font-stretch: 70%; font-weight: 600; font-size: 22px; }
+.d-label { fill: var(--face-dim); font-family: "Archivo", sans-serif; font-size: 17px; }
+.d-value { fill: var(--face-ink); font-family: "Archivo", sans-serif; font-stretch: 70%; font-weight: 600; font-size: 40px; }
+.d-unit { fill: var(--face-dim); font-family: "Archivo", sans-serif; font-size: 16px; }
+.d-needle { stroke-width: 4; }
+.lcd { margin-top: 10px; padding: 4px 10px; border-radius: 4px; background: #0B0E10; color: #F2A06B;
+  font-size: 15px; font-stretch: 85%; letter-spacing: 0.02em; white-space: nowrap; min-height: 1.4em; }
+.lcd:empty { visibility: hidden; }
+#tach { width: 100%; height: 100%; display: block; }
+.tach-wrap figcaption {
+  position: absolute; left: 0; right: 0; bottom: 21%;
+  display: flex; flex-direction: column; align-items: center; color: var(--face-ink); pointer-events: none;
+}
+.rpm { font-size: clamp(34px, 6vw, 54px); font-weight: 600; font-stretch: var(--narrow); line-height: 1; }
+.rpm-unit { font-size: 16px; color: var(--face-dim); margin-top: 4px; }
+
+.t-face { fill: var(--face); }
+.t-bezel { fill: none; stroke: var(--rule); stroke-width: 2; }
+.t-tick { stroke: var(--face-ink); }
+.t-num { fill: var(--face-ink); font-family: "Archivo", sans-serif; font-stretch: 70%; font-weight: 600; font-size: 30px; }
+.t-x { fill: var(--face-dim); font-family: "Archivo", sans-serif; font-size: 15px; }
+.t-red { fill: none; stroke: var(--red); stroke-width: 10; opacity: 0.85; }
+.t-red.hot { opacity: 1; stroke: var(--needle); filter: drop-shadow(0 0 6px var(--needle)); }
+.t-band { stroke-width: 1.2; }
+.t-band[data-sev="none"] { fill: none; stroke: var(--face-dim); }
+.t-band[data-sev="ok"] { fill: var(--face-ink); stroke: var(--face-ink); opacity: 0.55; }
+.t-band[data-sev="caution"] { fill: var(--amber); stroke: var(--amber); }
+.t-band[data-sev="serious"] { fill: var(--red); stroke: var(--red); }
+.t-band-num { font-family: "Archivo", sans-serif; font-size: 13px; font-weight: 700; fill: var(--face-ink); }
+.t-band-num[data-sev="ok"], .t-band-num[data-sev="caution"] { fill: var(--face); }
+.t-needle { stroke: var(--needle); stroke-width: 5; stroke-linecap: round; }
+.t-hub { fill: var(--face); stroke: var(--needle); stroke-width: 3; }
+
+.readouts { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); column-gap: 32px; }
+.ro { padding: 14px 0 12px; border-top: 1px solid var(--rule); min-width: 0; }
+.ro-label { font-size: 17px; color: var(--ink-2); }
+.ro-value { display: flex; align-items: baseline; gap: 6px; }
+.ro-num { font-size: 30px; font-weight: 600; font-stretch: var(--narrow); line-height: 1.1; }
+.ro-unit { font-size: 16px; color: var(--ink-2); }
+.ro svg { display: block; width: 100%; height: 28px; margin-top: 6px; overflow: visible; }
+.ro .spark { fill: none; stroke: var(--ink); stroke-width: 1.5; vector-effect: non-scaling-stroke; }
+.ro .band { fill: var(--teal); opacity: 0.14; }
+.ro.wide { grid-column: 1 / -1; }
+.live-note { color: var(--ink-2); font-size: 16px; max-width: 62ch; margin: 32px 0 0; }
+
+/* Everything else the engine computer reports: a quiet two-column list */
+.all-readings { margin-top: 40px; }
+.all-readings h3 { margin: 0 0 6px; font-size: 16px; font-weight: 600; color: var(--ink-2); }
+dl.all {  /* fixed label columns: changing values never move anything */
+  display: grid; grid-template-columns: 16em minmax(0, 1fr) 16em minmax(0, 1fr);
+  column-gap: 24px; margin: 0;
+}
+dl.all dt, dl.all dd { margin: 0; padding: 8px 0; border-top: 1px solid var(--rule); font-size: 17px; }
+dl.all dt { color: var(--ink-2); }
+dl.all dd { font-weight: 500; overflow-wrap: anywhere; }
+dl.all.stale dd { opacity: 0.35; }
+
+/* Porsche data: raw DME blocks; bytes that move stand out, static ones recede */
+.dme-note { color: var(--ink-2); font-size: 16px; max-width: 64ch; margin: 0 0 20px; }
+.lid { display: grid; grid-template-columns: 10rem minmax(0, 1fr); gap: 16px; padding: 12px 0; border-top: 1px solid var(--rule); }
+.lid-name { font-weight: 700; font-stretch: var(--wide); }
+.lid-name small { display: block; margin-top: 2px; font-size: 14px; font-weight: 400; font-stretch: 100%; color: var(--ink-2); }
+.bytes {
+  display: grid; grid-template-columns: repeat(16, 2.7ch); row-gap: 3px;
+  font-size: 15px; font-stretch: var(--narrow); text-transform: uppercase;
+}
+.bytes span { color: var(--ink-2); opacity: 0.45; }
+.bytes span.moved { color: var(--ink); opacity: 1; font-weight: 600; }
+.bytes span.hot { color: var(--amber); opacity: 1; font-weight: 700; }
+
+/* Report */
+.verdict { display: grid; grid-template-columns: 14px 1fr; gap: 18px; margin: 0 0 32px; max-width: 70ch; }
+.verdict::before { content: ""; border-radius: 7px; background: var(--teal); }
+.verdict[data-sev="caution"]::before { background: var(--amber); }
+.verdict[data-sev="serious"]::before { background: var(--red); }
+.verdict p { margin: 0; }
+.verdict .headline { font-size: clamp(22px, 3vw, 30px); line-height: 1.2; font-stretch: 110%; font-weight: 700; }
+.verdict .sub { margin-top: 8px; color: var(--ink-2); }
+
+.table-scroll { overflow-x: auto; }
+table.ranges { width: 100%; border-collapse: collapse; }
+.speed-m { display: none; font-size: 15px; font-weight: 400; font-stretch: 100%; color: var(--ink-2); white-space: nowrap; }
+.ranges th { text-align: left; font-weight: 500; font-size: 16px; color: var(--ink-2); padding: 0 16px 10px 0; border-bottom: 1.5px solid var(--ink); }
+.ranges td { padding: 14px 16px 14px 0; border-bottom: 1px solid var(--rule); vertical-align: middle; }
+.ranges .r { font-size: 22px; font-weight: 700; font-stretch: var(--wide); width: 3.5em; }
+.ranges .count { width: 40%; }
+.bar { display: flex; align-items: center; gap: 12px; }
+.bar i { display: block; height: 10px; border-radius: 5px; background: var(--ink-2); min-width: 2px; }
+.bar i[data-sev="caution"] { background: var(--amber); }
+.bar i[data-sev="serious"] { background: var(--red); }
+.bar b { font-weight: 600; min-width: 4ch; }
+.zero { color: var(--ink-2); }
+.explain { margin-top: 32px; max-width: 64ch; color: var(--ink-2); font-size: 15px; }
+.explain p { margin: 0 0 10px; }
+.sim-note {
+  margin: 0 0 28px; padding: 12px 16px; border-left: 3px solid var(--amber);
+  background: var(--paper-2); font-size: 14px; max-width: 70ch;
+}
+
+/* Colophon: quiet, one hairline, the maker's name the only emphasis */
+.colophon {
+  display: flex; justify-content: space-between; align-items: baseline; flex-wrap: wrap; gap: 8px 24px;
+  max-width: 1180px; margin: 24px auto 0; padding: 18px 32px 40px;
+  border-top: 1px solid var(--rule); font-size: 13px; color: var(--ink-2);
+}
+.colophon p { margin: 0; }
+.colophon a {
+  color: var(--ink); font-weight: 600; font-stretch: var(--wide); letter-spacing: 0.01em;
+  text-decoration: none; border-bottom: 1px solid transparent;
+}
+.colophon a:hover { border-bottom-color: var(--needle); }
+
+/* Codes */
+.codes { list-style: none; margin: 0; padding: 0; }
+.codes li { display: grid; grid-template-columns: 9rem 1fr; gap: 8px 24px; padding: 18px 0; border-top: 1px solid var(--rule); }
+.codes li:last-child { border-bottom: 1px solid var(--rule); }
+.code { font-size: 26px; font-weight: 700; font-stretch: var(--wide); line-height: 1.1; }
+.code-text { font-size: 17px; }
+.code-text.unknown { color: var(--ink-2); }
+.chips { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 8px; }
+.chip { font-size: 15px; padding: 2px 10px; border-radius: 999px; border: 1px solid var(--rule); color: var(--ink-2); }
+.chip.lamp { border-color: var(--amber); color: var(--ink); }
+.chip.now { border-color: var(--red); color: var(--ink); }
+.raw { font-size: 14px; color: var(--ink-2); }
+
+/* Info */
+dl.info { display: grid; grid-template-columns: max-content 1fr; gap: 0; margin: 0; max-width: 760px; }
+.info dt, .info dd { padding: 12px 0; border-top: 1px solid var(--rule); margin: 0; }
+.info dt { color: var(--ink-2); padding-right: 32px; }
+.info dd { font-weight: 500; overflow-wrap: anywhere; }
+.info dd.big { font-size: 22px; font-stretch: var(--wide); font-weight: 700; letter-spacing: 0.02em; }
+
+/* States */
+.state { padding: 40px 0; max-width: 60ch; }
+.state h3 { margin: 0 0 8px; font-size: 20px; font-stretch: 110%; }
+.state p { margin: 0 0 8px; color: var(--ink-2); }
+.state details { margin-top: 12px; font-size: 13px; color: var(--ink-2); }
+.wait { display: flex; align-items: center; gap: 12px; color: var(--ink-2); padding: 40px 0; }
+.wait::before {
+  content: ""; width: 18px; height: 18px; border-radius: 50%;
+  border: 2px solid var(--rule); border-top-color: var(--needle); animation: spin 0.9s linear infinite;
+}
+@keyframes spin { to { transform: rotate(1turn); } }
+
+@media (max-width: 860px) {
+  .cluster { flex-wrap: wrap; row-gap: 12px; }
+  .tach-wrap { width: 100%; max-width: 520px; order: 0; }
+  .dial-md, .dial-sm { width: 46%; margin: 0 2%; transform: none; order: 1; }
+  .readouts { grid-template-columns: 1fr 1fr; }
+  .masthead { padding: 28px 16px 16px; flex-direction: column; align-items: flex-start; }
+  .link-state { text-align: left; }
+  .tabs { padding: 0 16px; gap: 22px; }
+  main { padding: 24px 16px; }
+  .colophon { padding: 16px 16px 32px; }
+  .codes li { grid-template-columns: 1fr; }
+  dl.all { grid-template-columns: 14em minmax(0, 1fr); }
+  .lid { grid-template-columns: 1fr; gap: 6px; }
+  .ranges .count { width: auto; }
+  .ranges .when-full { display: none; }
+}
+@media (max-width: 600px) {
+  .ranges .speed { display: none; }
+  .speed-m { display: block; }
+  .ranges .r { width: auto; }
+  .readouts { column-gap: 20px; }
+  .bytes { grid-template-columns: repeat(8, 2.7ch); }
+}
+@media (prefers-reduced-motion: reduce) {
+  .wait::before { animation: none; }
+}
+@media print {
+  :root { --paper: #fff; --paper-2: #f3f3f3; --ink: #000; --ink-2: #444; --rule: #bbb; }
+  .tabs, .btn, .link-state, .view:not(#view-report) { display: none !important; }
+  #view-report { display: block !important; }
+  main, .masthead { padding: 0; max-width: none; }
+  .masthead { margin-bottom: 24px; }
+  .colophon { padding: 12px 0 0; margin-top: 32px; }
+}
+
+/* Stream lost: readings are old, not current. */
+.live.stale .ro-value, .live.stale .spark, .live.stale figcaption, .live.stale .t-needle { opacity: 0.35; }
+
+:root, :root[data-theme="dark"] {
+  --paper:#111315;--paper-2:#1a1d20;--ink:#e7e7e2;--ink-2:#92989c;--rule:#303336;
+  --face:#22272b;--face-ink:#d4d8d5;--face-dim:#929a9e;--needle:#f55631;
+  --amber:#ef9b51;--teal:#91bda3;--red:#ed644e;--focus:#ef9b51;color-scheme:dark;
+}
+body{background:radial-gradient(ellipse at 50% 22%,#24272a 0,#151719 48%,#111315 80%);font-family:Arial,Helvetica,sans-serif;font-size:14px;min-height:100vh}
+.masthead{max-width:1480px;padding:35px 48px 27px;align-items:center}
+.car{display:flex;align-items:center;gap:23px}.car .wordmark{font-size:42px;letter-spacing:-3px;font-style:italic;font-weight:800;line-height:1;border-right:1px solid #444;padding-right:26px}
+.car h1{font:500 17px Arial,sans-serif;letter-spacing:.06em;line-height:1.2}.car p{font-size:11px;letter-spacing:.09em;margin-top:7px;color:#a4aaad}.series{font:11px Arial;letter-spacing:.15em;color:#9ba1a4;text-transform:uppercase}
+.link-state{font-size:11px;max-width:350px;line-height:1.6}.link-state .lamp{width:6px;height:6px;box-shadow:0 0 12px currentColor}.link-state strong{font-weight:500}.link-state code{font:inherit}
+.tabs{max-width:1384px;gap:32px;padding:0;margin:0 48px}.tabs a{font-size:12px;padding:17px 0 16px;border-bottom-width:2px}.tabs a[aria-current]{color:#eee}.tabs a:first-child:before{content:'◉';color:var(--needle);font-size:11px;margin-right:8px}
+main{max-width:1480px;padding:0 48px 28px}.cockpit-heading{display:flex;justify-content:space-between;align-items:center;padding:30px 0 8px}.eyebrow{font-size:10px;letter-spacing:.2em;text-transform:uppercase;color:#a1a8ab;margin:0 0 8px}.cockpit-heading h2{font:400 23px Arial;letter-spacing:-.4px}.cockpit-actions{display:flex;gap:8px;align-items:center}.btn{border:1px solid #3b3f42;border-radius:5px;font-weight:400;font-size:11px;padding:9px 12px;min-height:36px;color:#bfc4c6}.btn:hover{background:#2c3033;color:#fff;border-color:#73797c}.btn[aria-pressed=true]{color:#f3b57e;border-color:#866447}
+.instrument-stage{position:relative;margin:20px -20px 0;padding:52px 20px 18px;isolation:isolate;background:radial-gradient(ellipse at 50% 62%,#353a3f35,transparent 64%)}
+.instrument-stage:before{content:'';position:absolute;z-index:-1;inset:0 0 15px;border-radius:48% 48% 14% 14% / 60% 60% 20% 20%;background:linear-gradient(175deg,#292d30 0,#101214 12%,#08090a 52%,#202427 96%);box-shadow:inset 0 3px 2px #656c6c38,inset 0 12px 16px #000,0 12px 35px #0008;border:1px solid #303436}
+.instrument-stage:after{content:'';position:absolute;inset:10px 9px 23px;z-index:-1;border-radius:48% 48% 14% 14% / 60% 60% 20% 20%;border-top:2px solid #ffffff07;pointer-events:none}
+.cluster{position:relative;margin:0 auto;max-width:1280px;align-items:center;flex-wrap:nowrap;padding:0 1.7% 15px}
+.dial,.tach-wrap{filter:drop-shadow(0 8px 6px #000a);order:initial;max-width:none}
+.dial-sm{width:23%;margin:0;transform:translateY(13%);z-index:1}.dial-md{width:30%;margin:0;transform:translateY(3%);z-index:2}.tach-wrap{width:36%;z-index:3;margin:0}
+.dial-l2{margin-right:-10.3%}.dial-l1{margin-right:-4.2%}.dial-r1{margin-left:-4.2%}.dial-r2{margin-left:-10.3%}
+.dial svg{overflow:visible}.t-num,.d-num{font-family:Arial,Helvetica,sans-serif;font-weight:700;font-stretch:expanded;fill:#d1d6d4;letter-spacing:-1px}.t-num{font-size:30px}.d-num{font-size:20px}.d-label{font:9px Arial;letter-spacing:1.4px;fill:#9da5a6}.d-unit{font:9px Arial;letter-spacing:1px;fill:#b4bdba}.d-value{font-family:'Courier New',monospace;font-size:26px;letter-spacing:1px;fill:#f4a464}.t-x{font:10px Arial;letter-spacing:1px;fill:#bdc5c2}.t-tick{stroke:#c7cdcb}.t-needle{fill:#fa5934;stroke:#ff7046;stroke-width:.6;filter:drop-shadow(0 2px 2px #000a)}.t-hub{stroke:#090c0d;stroke-width:1.8;fill:url(#hub-tach)}.t-red{stroke:#e55439;stroke-width:5}.t-red.hot{stroke:#ff7147}.t-band,.t-band-num{display:none}
+.tach-wrap figcaption{bottom:17%;left:0;right:0;flex-direction:row;justify-content:center;gap:7px;color:#eca16c}.rpm{font:17px 'Courier New',monospace;letter-spacing:1px;line-height:1}.rpm-unit{font:8px Arial;letter-spacing:1px;margin:0;color:#cc8551;text-transform:uppercase}.lcd{display:none}
+.cluster-footer{display:flex;justify-content:space-between;align-items:center;padding:16px 26px 5px;color:#939b9e;font-size:9px;letter-spacing:.13em;text-transform:uppercase}.cluster-footer .center-mark{letter-spacing:.3em;color:#b3b9b9}.data-fresh{color:#a5c7b0}.data-fresh:before{content:'●';font-size:7px;margin-right:7px}.live.stale .data-fresh{color:#efa16c}.live.stale .t-needle,.live.stale .d-value,.live.stale .seven-display{opacity:.25}
+.telemetry-head{display:flex;justify-content:space-between;align-items:center;margin:35px 0 16px}.telemetry-head h3{font:500 12px Arial;margin:0}.telemetry-head span{font-size:10px;color:var(--ink-2)}
+.readouts{grid-template-columns:repeat(8,minmax(0,1fr));gap:0;border-top:1px solid var(--rule);border-bottom:1px solid var(--rule)}.ro{border-top:0;border-right:1px solid var(--rule);padding:17px 15px 11px}.ro:first-child{padding-left:0}.ro:last-child{border-right:0;padding-right:0}.ro-label{font-size:10px;min-height:27px}.ro-value{gap:5px;flex-wrap:wrap}.ro-num{font:400 25px Arial;letter-spacing:-.5px}.ro-unit{font-size:10px}.ro svg{height:22px;margin-top:13px}.ro .spark{stroke:#a5b6b0;stroke-width:1}.ro .band{opacity:.06}
+.all-readings{margin-top:24px}.all-readings summary{cursor:pointer;color:#c4c9ca;font-size:12px;min-height:44px;display:flex;align-items:center;justify-content:space-between;list-style:none;border-bottom:1px solid var(--rule)}.all-readings summary:after{content:'+';font-size:20px;color:#929a9e}.all-readings[open] summary:after{content:'−'}
+dl.all{grid-template-columns:14em minmax(0,1fr) 14em minmax(0,1fr);gap:0 20px;padding-top:10px}dl.all dt,dl.all dd{font-size:12px;padding:11px 0}.live-note{font-size:11px;margin-top:18px;max-width:none;color:#858e92}
+.colophon{max-width:1384px;margin:0 48px;padding:18px 0 26px;font-size:10px;border-top:1px solid #272c2f}.colophon .maker{letter-spacing:.05em}.view:not(#view-live){padding-top:36px;min-height:60vh}.view-head h2{font-size:25px}.info dt,.info dd{font-size:14px}.state h3{font-size:22px}.state p,.dme-note{font-size:14px}.ranges th,.ranges td{font-size:13px}
+body.focus-mode .masthead,body.focus-mode .tabs,body.focus-mode .telemetry-head,body.focus-mode .readouts,body.focus-mode .all-readings,body.focus-mode .live-note,body.focus-mode .colophon{display:none}body.focus-mode main{max-width:1700px}body.focus-mode .instrument-stage{margin-top:5vh}body.focus-mode .cockpit-heading h2{font-size:17px}
+body.night-mode .instrument-stage{filter:brightness(.65)}body.night-mode .t-tick{stroke:#d29a71}body.night-mode .t-num,body.night-mode .d-num{fill:#d29a71}
+@media(min-width:1480px){.tabs,.colophon{margin-left:auto;margin-right:auto}}
+@media(max-width:1100px){.masthead{padding:26px 24px}.tabs{margin:0 24px}.colophon{margin:0 24px}main{padding:0 24px 24px}.readouts{grid-template-columns:repeat(4,minmax(0,1fr))}.ro:nth-child(4){border-right:0}.ro:nth-child(n+5){border-top:1px solid var(--rule)}.ro:nth-child(5){padding-left:0}.ro-label{min-height:20px}.instrument-stage{padding-top:34px;margin-left:-10px;margin-right:-10px}.rpm{font-size:14px}dl.all{grid-template-columns:14em minmax(0,1fr)}}
+@media(max-width:650px){.masthead{padding:23px 18px 16px;flex-direction:column;align-items:flex-start;gap:17px}.car{gap:17px}.car .wordmark{font-size:35px;padding-right:18px}.car h1{font-size:16px}.car p{font-size:10px}.link-state{font-size:10px;max-width:none}.tabs{margin:0 18px;gap:24px}.tabs a{font-size:11px}.tabs a:first-child:before{display:none}main{padding:0 16px 20px}.cockpit-heading{padding-top:24px;align-items:center}.cockpit-heading h2{font-size:21px}.eyebrow{font-size:8px}.cockpit-actions{gap:5px}.btn{padding:8px 9px;font-size:10px}.focus-label{display:none}.instrument-stage{padding:20px 5px 14px;margin:18px -10px 0}.instrument-stage:before{border-radius:45% 45% 12% 12% / 30% 30% 8% 8%}.cluster{flex-wrap:wrap;padding:0 5px;gap:0;align-items:center}.tach-wrap{order:0;width:65%;margin:0 17.5% -7%;}.dial-md{order:1;width:52%;margin:0;transform:none;z-index:4}.dial-l1{margin-left:-1%;margin-right:-2%}.dial-r1{margin-right:-1%}.dial-sm{order:2;width:38%;transform:none;z-index:1;margin:0 3%}.dial-l2{margin-top:-4%;margin-left:9%}.dial-r2{margin-top:-4%;margin-right:9%}.tach-wrap figcaption{bottom:17%;}.rpm{font-size:16px}.rpm-unit{font-size:7px}.cluster-footer{padding:16px 12px 0;font-size:7px;gap:8px}.center-mark{display:none}.telemetry-head{margin-top:27px}.telemetry-head span{font-size:9px}.readouts{grid-template-columns:repeat(2,minmax(0,1fr))}.ro{padding:14px 12px}.ro:nth-child(2n){border-right:0}.ro:nth-child(2n+1){padding-left:0}.ro:nth-child(n+3){border-top:1px solid var(--rule)}.ro-num{font-size:26px}.ro-label{font-size:11px}.all-readings summary{font-size:11px}dl.all{grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:0 12px}dl.all dt,dl.all dd{font-size:11px}.live-note{line-height:1.7;font-size:10px}.colophon{margin:0 16px;font-size:9px}.info dt{padding-right:15px}.info dd.big{font-size:15px}.cockpit-actions #focus-btn{min-width:35px}}
+@media print{body{background:#fff;color:#000}.cockpit-heading,.instrument-stage{display:none}.colophon{margin:0}.tabs{display:none}}
+/* Keep the complete five-dial silhouette inside the viewport. */
+@media(min-width:651px){
+  .masthead{padding-top:24px;padding-bottom:18px}.tabs a{padding-top:12px;padding-bottom:12px}
+  .cockpit-heading{padding-top:23px;padding-bottom:0}.instrument-stage{padding-top:30px;margin-top:16px}
+  .dial-sm{width:20.4%}.dial-md{width:26.5%}.tach-wrap{width:32%}
+  .dial-l2{margin-right:-9.2%}.dial-r2{margin-left:-9.2%}.dial-l1{margin-right:-3.7%}.dial-r1{margin-left:-3.7%}
+}
+/* Navigation and instrument controls share one compact toolbar. */
+.nav-bar{display:flex;align-items:center;gap:24px;max-width:1384px;margin:0 48px;border-bottom:1px solid var(--rule)}
+.nav-bar .tabs{flex:1;min-width:0;max-width:none;margin:0;border-bottom:0;gap:28px}
+.nav-bar .cockpit-actions{flex-shrink:0;margin-left:auto;padding:5px 0}
+.cockpit-actions[hidden]{display:none}
+.nav-bar .tabs a{padding:16px 0}
+.all-readings{margin-top:32px}.all-readings .telemetry-head{margin:0 0 15px}
+.all-readings h3{margin:0;color:var(--ink)}
+.data-table{width:100%;border-collapse:collapse;table-layout:fixed;text-align:left;font-size:13px}
+.data-table thead th{font-size:10px;font-weight:500;text-transform:uppercase;letter-spacing:.09em;color:var(--ink-2);padding:12px 16px;border-top:1px solid var(--rule);border-bottom:1px solid var(--rule);background:#ffffff03}
+.data-table th:first-child{width:48%}
+.data-table tbody th,.data-table tbody td{padding:12px 16px;border-bottom:1px solid #ffffff0c;vertical-align:top;overflow-wrap:anywhere}
+.data-table tbody th{font-weight:400;color:#aeb6b9}.data-table tbody td{font-variant-numeric:tabular-nums;color:#e5e9e5}
+.data-table tbody tr:hover{background:#ffffff03}.data-table tbody.stale td{opacity:.35}
+.code-actions{display:flex;align-items:center;gap:8px}.danger-btn{border-color:#925143;color:#f0a38e}.danger-btn:disabled{cursor:not-allowed}.clear-codes-note{font-size:12px;color:var(--ink-2);margin:0 0 20px}
+body.focus-mode .nav-bar{justify-content:flex-end;border:0;padding-top:16px}
+@media(min-width:1480px){.nav-bar{margin-left:auto;margin-right:auto}}
+@media(max-width:1100px){.nav-bar{margin:0 24px;gap:16px}.nav-bar .tabs{gap:18px}}
+@media(max-width:800px){.nav-bar{flex-wrap:wrap;gap:0}.nav-bar .tabs{flex-basis:100%}.nav-bar .cockpit-actions{padding:10px 0}.data-table{font-size:12px}}
+@media(max-width:650px){.nav-bar{margin:0 16px}.nav-bar .tabs{gap:24px}.data-table thead th,.data-table tbody th,.data-table tbody td{padding:11px 8px}.data-table th:first-child{width:47%}.code-actions{flex-wrap:wrap}.view-head{align-items:center}}
+@media print{.nav-bar{display:none}}
+/* Readable supporting data; unavailable values never pretend to be zero. */
+.ro-label{font-size:14px;line-height:1.35;min-height:38px;color:#aeb6b9}
+.ro-unit{font-size:12px}.ro-num{font-size:29px}
+.telemetry-head h3,.all-readings h3{font-size:17px}.telemetry-head span{font-size:12px}
+.data-table{font-size:16px;line-height:1.5}.data-table thead th{font-size:12px}
+.data-table tbody th,.data-table tbody td{padding:14px 16px}
+svg.unavailable .t-needle{opacity:0}svg.unavailable .d-value,.seven-display.unavailable{opacity:.42}
+.cluster-footer .data-fresh{max-width:55%;letter-spacing:.07em}
+@media(max-width:1100px){.ro-label{font-size:14px;min-height:20px}}
+@media(max-width:650px){.data-table{font-size:15px}.data-table tbody th,.data-table tbody td{padding:12px 8px}.ro-label{font-size:14px}.telemetry-head span{font-size:10px}.cluster-footer .data-fresh{max-width:65%}}
+dialog{width:min(530px,calc(100vw - 32px));padding:28px;border:1px solid #535a5e;border-radius:10px;background:#1a1e21;color:var(--ink);box-shadow:0 18px 70px #0008}
+dialog::backdrop{background:#000a;backdrop-filter:blur(3px)}
+dialog h2{font-size:23px;margin:0 0 18px}dialog p{font-size:15px;line-height:1.6;color:#bac1c3}.scope-note{font-size:12px!important;color:#929ca1!important}.dialog-actions{display:flex;justify-content:flex-end;gap:10px;margin-top:24px}.dialog-actions .btn{font-size:13px;padding:11px 16px}.dialog-actions .danger-btn{background:#8a3e2c;color:#fff;border-color:#aa513b}.clear-result{padding:15px 18px;background:#ffffff05;border-left:2px solid var(--amber);font-size:14px;line-height:1.6}.clear-result[data-state=ok]{border-color:var(--teal)}.clear-result[hidden]{display:none}
+</style>
+</head>
+<body>
+<header class="masthead">
+  <div class="car"><div class="wordmark" aria-hidden="true">911</div><div>
+    <h1 id="car-name">Porsche</h1>
+    <p id="car-sub">Reading the car…</p>
+  </div></div>
+  <div id="link-state" class="link-state" role="status"></div>
+</header>
+
+<div class="nav-bar"><nav class="tabs" aria-label="Views">
+  <a href="#live" data-view="live">Instruments</a>
+  <a href="#report" data-view="report">Over-rev report</a>
+  <a href="#codes" data-view="codes">Fault codes</a>
+  <a href="#dme" data-view="dme">DME data</a>
+  <a href="#info" data-view="info">Vehicle</a>
+</nav><div class="cockpit-actions" aria-label="Instrument controls"><div id="unit-slot"></div><button class="btn" id="night-btn" aria-pressed="false" title="Dim the instruments">Night</button><button class="btn" id="focus-btn" aria-pressed="false" title="Focus on the instruments (Escape to exit)">⛶ <span class="focus-label">Focus</span></button></div></div>
+
+<main>
+  <section id="view-live" class="view" aria-labelledby="live-h">
+    <h2 id="live-h" class="sr-only">Live engine data</h2>
+    <div class="live">
+      <div class="instrument-stage"><div class="cluster">
+        <figure class="dial dial-sm dial-l2"><svg id="g-intake" viewBox="0 0 300 300" role="img" aria-label="Intake air temperature"></svg></figure>
+        <figure class="dial dial-md dial-l1"><svg id="g-speed" viewBox="0 0 300 300" role="img" aria-label="Road speed"></svg></figure>
+        <figure class="tach-wrap">
+          <svg id="tach" viewBox="0 0 400 400" role="img" aria-label="Tachometer"></svg>
+          <figcaption>
+            <span class="rpm" id="rpm-num">0</span>
+            <span class="rpm-unit">rpm</span>
+            <span class="lcd" id="lcd" aria-live="off"></span>
+          </figcaption>
+        </figure>
+        <figure class="dial dial-md dial-r1"><svg id="g-coolant" viewBox="0 0 300 300" role="img" aria-label="Coolant temperature"></svg></figure>
+        <figure class="dial dial-sm dial-r2"><svg id="g-load" viewBox="0 0 300 300" role="img" aria-label="Engine load"></svg></figure>
+      </div>
+      <div class="cluster-footer"><span class="data-fresh" id="freshness">Waiting for telemetry</span><span class="center-mark">911 · Type 996</span><span>Engine telemetry</span></div></div>
+      <div class="telemetry-head"><h3>Engine at a glance</h3><span>Live readings · recent history</span></div><div class="readouts" id="readouts"></div>
+    </div>
+    <section class="all-readings" aria-labelledby="all-h">
+      <div class="telemetry-head"><h3 id="all-h">All engine readings</h3><span>Current values · updates live</span></div>
+      <table class="data-table" aria-labelledby="all-h"><thead><tr><th scope="col">Reading</th><th scope="col">Current value</th></tr></thead><tbody id="all"><tr><td colspan="2">Waiting for the first readings…</td></tr></tbody></table>
+    </section>
+    <p class="live-note" id="live-note">996-inspired instruments, showing the values available from your engine computer. Auxiliary dials display intake temperature and engine load.</p>
+  </section>
+
+  <section id="view-report" class="view" aria-labelledby="report-h" hidden>
+    <div class="view-head">
+      <h2 id="report-h">Over-rev report</h2>
+      <button type="button" class="btn" id="print-btn">Print report</button>
+    </div>
+    <div id="report-body" aria-live="polite"></div>
+  </section>
+
+  <section id="view-codes" class="view" aria-labelledby="codes-h" hidden>
+    <div class="view-head">
+      <h2 id="codes-h">Fault codes</h2>
+      <div class="code-actions"><button type="button" class="btn" id="codes-btn">Read again</button><button type="button" class="btn danger-btn" id="clear-codes-btn" disabled aria-describedby="clear-codes-note">Clear fault codes</button></div>
+    </div>
+    <p class="clear-codes-note" id="clear-codes-note">Code clearing is not enabled on the current read-only connection.</p><p id="clear-result" class="clear-result" role="status" hidden></p><div id="codes-body" aria-live="polite"></div>
+  </section>
+
+  <section id="view-dme" class="view" aria-labelledby="dme-h" hidden>
+    <div class="view-head">
+      <h2 id="dme-h">Porsche data</h2>
+    </div>
+    <p class="dme-note">Raw data blocks from the engine computer, read one after another. pdiag can't decode them yet. Bytes in ink have changed while you watched, dim ones haven't, and the latest change is amber. Everything is logged.</p>
+    <div id="dme-body"></div>
+  </section>
+
+  <section id="view-info" class="view" aria-labelledby="info-h" hidden>
+    <div class="view-head">
+      <h2 id="info-h">Car info</h2>
+      <button type="button" class="btn" id="info-btn">Read again</button>
+    </div>
+    <div id="info-body" aria-live="polite"></div>
+  </section>
+</main><dialog id="clear-dialog" aria-labelledby="clear-title" aria-describedby="clear-description">
+  <h2 id="clear-title">Clear engine fault codes?</h2>
+  <p id="clear-description">This erases stored emissions codes and freeze-frame data, and resets emissions readiness monitors. It does not repair the underlying fault.</p>
+  <p>Park the car, turn the engine off, and leave the ignition on. The backend checks engine speed and road speed before clearing.</p>
+  <p class="scope-note">Standard engine emissions codes only. Other modules and manufacturer-specific faults may remain.</p>
+  <div class="dialog-actions"><button class="btn" id="clear-cancel" autofocus>Cancel</button><button class="btn danger-btn" id="clear-confirm">Clear engine codes</button></div>
+</dialog>
+
+<footer class="colophon">
+  <p>pdiag is open source and read-only. It never writes to the car.</p>
+  <p class="maker">A project by <a href="https://eloquentix.com" target="_blank" rel="noopener">Eloquentix</a></p>
+</footer>
+
+<script>
+"use strict";
+
+const $ = (s) => document.querySelector(s);
+const MAX_RPM = 9000;
+// Both come from the car's model profile (/api/status); these are fallbacks.
+let REDLINE = 7200;
+let RANGE_FROM = [7300, 7600, 7900, 8200, 8500, 8800];
+const reduceMotion = matchMedia("(prefers-reduced-motion: reduce)").matches;
+const NS = "http://www.w3.org/2000/svg";
+
+const store = {
+  get(k, d) { try { return localStorage.getItem(k) ?? d; } catch { return d; } },
+  set(k, v) { try { localStorage.setItem(k, v); } catch {} },
+};
+
+let status = null;
+let overRev = null;
+let ident = null;
+let units = store.get("pdiag-996-design-units", "us");
+
+async function api(path) {
+  const r = await fetch(path);
+  const body = await r.json().catch(() => ({}));
+  if (!r.ok) {
+    const e = new Error(body.error || r.statusText);
+    e.kind = body.kind;
+    throw e;
+  }
+  return body;
+}
+
+const esc = (s) => String(s ?? "").replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" })[c]);
+const fmt = (n, d = 0) => Number(n).toLocaleString("en-US", { minimumFractionDigits: d, maximumFractionDigits: d });
+
+// ---------------------------------------------------------------- tach
+const CX = 200, CY = 200;
+const ang = (rpm) => ((-135 + (Math.min(Math.max(rpm, 0), MAX_RPM) / MAX_RPM) * 270) * Math.PI) / 180;
+const pt = (rpm, r) => [CX + r * Math.sin(ang(rpm)), CY - r * Math.cos(ang(rpm))];
+
+function svg(tag, attrs, parent) {
+  const e = document.createElementNS(NS, tag);
+  for (const k in attrs) e.setAttribute(k, attrs[k]);
+  if (parent) parent.appendChild(e);
+  return e;
+}
+
+function sector(r0, r1, a, b) {
+  const [x0, y0] = pt(a, r1), [x1, y1] = pt(b, r1), [x2, y2] = pt(b, r0), [x3, y3] = pt(a, r0);
+  return `M${x0} ${y0} A${r1} ${r1} 0 0 1 ${x1} ${y1} L${x2} ${y2} A${r0} ${r0} 0 0 0 ${x3} ${y3}Z`;
+}
+
+function severity(range, count) {
+  if (!count) return "none";
+  if (range <= 2) return "ok";
+  return range === 3 ? "caution" : "serious";
+}
+
+const defaultRanges = () => RANGE_FROM.map((f, i, a) => ({
+  range: i + 1, rpm_from: f, rpm_to: a[i + 1] ?? null, ignitions: null,  // not read
+}));
+
+function applyProfile() {
+  const p = status?.profile;
+  if (!p) return;
+  if (p.redline === REDLINE && String(p.over_rev_from) === String(RANGE_FROM)) return;
+  REDLINE = p.redline;
+  RANGE_FROM = p.over_rev_from;
+  buildTach();
+}
+
+let needle, redArc;
+let targetRpm = 0, shownRpm = 0;
+
+function drawBands(g, ranges) {
+  g.replaceChildren();
+  for (const r of ranges) {
+    const to = r.rpm_to ?? MAX_RPM;
+    const sev = severity(r.range, r.ignitions);
+    const p = svg("path", { d: sector(169, 187, r.rpm_from + 15, to - 15), class: "t-band", "data-sev": sev }, g);
+    const title = svg("title", {}, p);
+    title.textContent = r.ignitions == null ? `Range ${r.range}: not read yet`
+      : `Range ${r.range}: ${fmt(r.ignitions)} ignitions`;
+    const [tx, ty] = pt((r.rpm_from + to) / 2, 178);
+    const t = svg("text", { x: tx, y: ty + 4, "text-anchor": "middle", class: "t-band-num", "data-sev": sev }, g);
+    t.textContent = r.range;
+  }
+}
+
+// Readings arrive ~3 times a second. Ease toward each one over about that long, so
+// the needle keeps moving instead of snapping and waiting. Frame-rate independent.
+const NEEDLE_TAU = 0.10;
+let lastFrame = null, shownText = "";
+function animate(now) {
+  const dt = lastFrame == null ? 0 : Math.min(0.1, (now - lastFrame) / 1000);
+  lastFrame = now;
+  shownRpm = reduceMotion ? targetRpm : shownRpm + (targetRpm - shownRpm) * (1 - Math.exp(-dt / NEEDLE_TAU));
+  setNeedle(shownRpm);
+  easeDials(dt);
+  digitalSpeed(dialState["g-speed"]?.shown ?? null);
+  const text = lastValues.rpm == null ? "–" : fmt(Math.round(shownRpm));  // the digits roll with the needle
+  if (text !== shownText) { $("#rpm-num").textContent = lastValues.rpm == null ? "–" : text; shownText = text; }
+  requestAnimationFrame(animate);
+}
+
+// ---------------------------------------------------------------- side dials
+// The 996 cluster: five overlapping round dials, the tach in the middle. The side dials
+// show what the engine computer reports through generic OBD; each eases like the tach.
+const DIALS = [
+  { id: "g-intake", key: "intake_temp", label: "Intake air", sweep: 240,
+    unit: () => (units === "us" ? "°F" : "°C"), conv: (v) => (units === "us" ? v * 1.8 + 32 : v),
+    range: () => (units === "us" ? [0, 200, 40, 20] : [-20, 100, 20, 10]) },
+  { id: "g-speed", key: "speed", label: "Speed", sweep: 270,
+    unit: () => (units === "us" ? "mph" : "km/h"), conv: (v) => (units === "us" ? v * 0.6214 : v),
+    range: () => (units === "us" ? [0, 180, 20, 10] : [0, 300, 40, 20]) },
+  { id: "g-coolant", key: "coolant_temp", label: "Coolant", sweep: 240,
+    unit: () => (units === "us" ? "°F" : "°C"), conv: (v) => (units === "us" ? v * 1.8 + 32 : v),
+    range: () => (units === "us" ? [100, 260, 40, 20] : [40, 130, 20, 10]),
+    hot: () => (units === "us" ? 230 : 110) },
+  { id: "g-load", key: "engine_load", label: "Load", sweep: 240,
+    unit: () => "%", range: () => [0, 100, 25, 12.5] },
+];
+const dialState = {};
+
+function drawDial(d, st) {
+  const v = st.shown;
+  const deg = v == null ? -st.sweep / 2 : -st.sweep / 2 + ((Math.min(Math.max(v, st.lo), st.hi) - st.lo) / (st.hi - st.lo)) * st.sweep;
+  st.needle.setAttribute("transform", `rotate(${deg} ${st.C} ${st.C})`);
+  const text = v == null ? "–" : fmt(v, 0);
+  if (st.val.textContent !== text) st.val.textContent = text;
+}
+
+function updateDials(values) {
+  for (const d of DIALS) {
+    const st = dialState[d.id];
+    if (!st) continue;
+    const raw = values[d.key];
+    st.target = raw == null ? null : (d.conv ? d.conv(raw) : raw);
+    if (st.target == null) { st.shown = null; drawDial(d, st); }
+    else if (st.shown == null) st.shown = st.target;
+  }
+  const lcd = [];
+  if (values.timing_advance != null) lcd.push(`${fmt(values.timing_advance, 1)}° adv`);
+  if (values.maf != null) lcd.push(`${fmt(values.maf, 1)} g/s`);
+  if (values.stft_b1 != null) lcd.push(`trim ${values.stft_b1 > 0 ? "+" : ""}${fmt(values.stft_b1, 1)}%`);
+  const text = lcd.join("  ·  ");
+  if ($("#lcd").textContent !== text) $("#lcd").textContent = text;
+}
+
+function easeDials(dt) {
+  for (const d of DIALS) {
+    const st = dialState[d.id];
+    if (!st || st.target == null || st.shown == null) continue;
+    st.shown = reduceMotion ? st.target : st.shown + (st.target - st.shown) * (1 - Math.exp(-dt / NEEDLE_TAU));
+    drawDial(d, st);
+  }
+}
+
+const buildDials = () => DIALS.forEach(buildDial);
+
+// ---------------------------------------------------------------- readouts
+const READOUTS = [
+  { key: "coolant_temp", label: "Coolant temperature", unit: () => (units === "us" ? "°F" : "°C"),
+    conv: (v) => (units === "us" ? v * 1.8 + 32 : v), dec: 0, scale: [40, 120], band: [80, 100] },
+  { key: "timing_advance", label: "Ignition timing", unit: () => "° advance", dec: 1, scale: [-10, 45] },
+  { key: "throttle", label: "Throttle", unit: () => "%", dec: 0, scale: [0, 100] },
+  { key: "engine_load", label: "Engine load", unit: () => "%", dec: 0, scale: [0, 100] },
+  { key: "maf", label: "Air flow", unit: () => "g/s", dec: 1, scale: [0, 200] },
+  { key: "speed", label: "Road speed", unit: () => (units === "us" ? "mph" : "km/h"),
+    conv: (v) => (units === "us" ? v * 0.6214 : v), dec: 0, scale: [0, 160] },
+  { key: "stft_b1", label: "Short-term fuel trim", unit: () => "%", dec: 1, scale: [-25, 25], band: [-10, 10] },
+  { key: "ltft_b1", label: "Long-term fuel trim", unit: () => "%", dec: 1, scale: [-25, 25], band: [-10, 10] },
+];
+const HISTORY = 150;
+const hist = {};
+
+function buildReadouts() {
+  const box = $("#readouts");
+  box.innerHTML = READOUTS.map((r) => `
+    <div class="ro" id="ro-${r.key}">
+      <div class="ro-label">${r.label}</div>
+      <div class="ro-value"><span class="ro-num">–</span><span class="ro-unit">${r.unit()}</span></div>
+      <svg viewBox="0 0 ${HISTORY} 28" preserveAspectRatio="none" aria-hidden="true">
+        ${r.band ? `<rect class="band" x="0" width="${HISTORY}" y="${yOf(r, r.band[1])}" height="${yOf(r, r.band[0]) - yOf(r, r.band[1])}"/>` : ""}
+        <polyline class="spark" points=""/>
+      </svg>
+    </div>`).join("");
+}
+
+function yOf(r, raw) {
+  const [lo, hi] = r.scale;
+  return 28 - ((Math.min(Math.max(raw, lo), hi) - lo) / (hi - lo)) * 28;
+}
+
+function updateReadouts(values) {
+  for (const r of READOUTS) {
+    const raw = values[r.key];
+    const node = $(`#ro-${r.key}`);
+    if (raw == null) {
+      // Each message is a full snapshot: a missing value isn't known (yet), or
+      // the car stopped reporting it. Don't leave an old number looking live.
+      hist[r.key] = [];
+      node.querySelector(".ro-num").textContent = "–";
+      node.querySelector(".spark").setAttribute("points", "");
+      continue;
+    }
+    (hist[r.key] ??= []).push(raw);
+    if (hist[r.key].length > HISTORY) hist[r.key].shift();
+    node.querySelector(".ro-num").textContent = fmt(r.conv ? r.conv(raw) : raw, r.dec);
+    const h = hist[r.key];
+    const off = HISTORY - h.length;
+    node.querySelector(".spark").setAttribute("points", h.map((v, i) => `${off + i},${yOf(r, v).toFixed(1)}`).join(" "));
+  }
+}
+
+// ---------------------------------------------------------------- all readings
+const LABELS = {
+  monitor_status: "Fault lamp and readiness", fuel_system: "Fuel system",
+  rpm: "Engine speed", engine_load: "Engine load", throttle: "Throttle",
+  coolant_temp: "Coolant temperature", intake_temp: "Intake air temperature",
+  maf: "Air flow", timing_advance: "Ignition timing", speed: "Road speed",
+  stft_b1: "Short-term fuel trim, bank 1", ltft_b1: "Long-term fuel trim, bank 1",
+  stft_b2: "Short-term fuel trim, bank 2", ltft_b2: "Long-term fuel trim, bank 2",
+  o2_b1s1: "Oxygen sensor, bank 1 front", o2_b1s2: "Oxygen sensor, bank 1 rear",
+  o2_b2s1: "Oxygen sensor, bank 2 front", o2_b2s2: "Oxygen sensor, bank 2 rear",
+  secondary_air: "Secondary air", o2_sensors: "Oxygen sensors fitted",
+  obd_standard: "OBD standard", map: "Manifold pressure", run_time: "Engine run time",
+};
+const ORDER = Object.keys(LABELS);
+
+function showValue(key, v) {
+  if (v == null) return "–";
+  if (typeof v === "string") return v;
+  const unit = status?.units?.[key] ?? "";
+  if (unit === "C") return units === "us" ? `${fmt(v * 1.8 + 32)} °F` : `${fmt(v)} °C`;
+  if (unit === "km/h") return units === "us" ? `${fmt(v * 0.6214)} mph` : `${fmt(v)} km/h`;
+  const dec = unit === "V" ? 2 : unit === "%" || unit === "g/s" || unit === "deg" ? 1 : 0;
+  return `${fmt(v, dec)}${unit === "deg" ? "°" : unit ? ` ${unit}` : ""}`;
+}
+
+let allKeys = null, lastValues = {};
+function renderAll(values) {
+  lastValues = values;
+  const keys = Object.keys(values).sort((a, b) =>
+    (ORDER.indexOf(a) + 1 || 99) - (ORDER.indexOf(b) + 1 || 99) || a.localeCompare(b));
+  const dl = $("#all");
+  if (keys.join() !== allKeys) {  // a reading appeared or went away: rebuild the rows once
+    allKeys = keys.join();
+    dl.replaceChildren(...keys.flatMap((k) => {
+      const dt = document.createElement("dt");
+      dt.textContent = LABELS[k] ?? k.replaceAll("_", " ");
+      const dd = document.createElement("dd");
+      dd.dataset.key = k;
+      return [dt, dd];
+    }));
+  }
+  for (const dd of dl.querySelectorAll("dd")) {  // otherwise only touch text that changed
+    const text = showValue(dd.dataset.key, values[dd.dataset.key]);
+    if (dd.textContent !== text) dd.textContent = text;
+  }
+}
+
+// ---------------------------------------------------------------- live stream
+let es = null, liveWanted = false;
+function startLive() {
+  liveWanted = true;
+  if (es) return;
+  es = new EventSource("/api/live");
+  es.onerror = (ev) => {
+    // The numbers are old now. Reconnect ourselves every 2 s: the browser's own
+    // retry can back off for a long time after pdiag restarts.
+    setLink("err", "<strong>Lost contact with pdiag.</strong> Reconnecting.");
+    setStale(true);
+    ev.target.close();
+    if (es === ev.target) es = null;
+    setTimeout(() => { if (liveWanted) startLive(); }, 2000);
+  };
+  es.onmessage = (e) => {
+    const msg = JSON.parse(e.data);
+    if (msg.error) {
+      setLink("err", msg.kind === "internal"
+        ? `<strong>pdiag hit an error.</strong> ${esc(msg.error)}`
+        : `<strong>No answer from the car.</strong> Retrying.`);
+      setStale(true);
+      return;
+    }
+    setStale(false);
+    if (status) { status.connected = true; renderLink(); }
+    targetRpm = Number.isFinite(msg.values.rpm) ? msg.values.rpm : 0;
+    updateReadouts(msg.values);
+    updateDials(msg.values);
+    renderAll(msg.values);
+  };
+}
+function setStale(on) {
+  $(".live").classList.toggle("stale", on);
+  $("#all").classList.toggle("stale", on);
+}
+function stopLive() {
+  liveWanted = false;
+  if (es) { es.close(); es = null; }
+}
+
+// ---------------------------------------------------------------- Porsche data blocks
+let dmeEs = null, dmeWanted = false;
+const dmePrev = {}, dmeMoved = {};
+
+function startDme() {
+  dmeWanted = true;
+  if (dmeEs) return;
+  const body = $("#dme-body");
+  if (!body.children.length) body.innerHTML = waiting("Waking the engine computer. This takes a few seconds.");
+  dmeEs = new EventSource("/api/dme-live");
+  dmeEs.onerror = (ev) => {
+    ev.target.close();
+    if (dmeEs === ev.target) dmeEs = null;
+    setTimeout(() => { if (dmeWanted) startDme(); }, 2000);
+  };
+  dmeEs.onmessage = (e) => {
+    const msg = JSON.parse(e.data);
+    if (msg.error) {
+      setLink("err", msg.kind === "kline"
+        ? "<strong>No answer from the engine computer.</strong> Retrying."
+        : `<strong>${esc(msg.error)}</strong>`);
+      return;
+    }
+    if (status) { status.connected = true; renderLink(); }
+    renderBlocks(msg.blocks, msg.new);
+  };
+}
+
+function stopDme() {
+  dmeWanted = false;
+  if (dmeEs) { dmeEs.close(); dmeEs = null; }
+}
+
+function renderBlocks(blocks, fresh) {
+  const body = $("#dme-body");
+  if (body.querySelector(".wait")) body.replaceChildren();
+  for (const lid of Object.keys(blocks).sort()) {
+    let el = document.getElementById(`lid-${lid}`);
+    if (!el) {  // first time we see this block: add its row, in order
+      el = document.createElement("div");
+      el.className = "lid";
+      el.id = `lid-${lid}`;
+      el.innerHTML = `<div class="lid-name">Block ${lid.toUpperCase()}<small></small></div><div class="bytes"></div>`;
+      body.insertBefore(el, [...body.children].find((c) => c.id > el.id) ?? null);
+    } else if (lid !== fresh) {
+      continue;  // only the block just read changes
+    }
+    const bytes = blocks[lid].match(/../g) ?? [];
+    const prev = dmePrev[lid], moved = (dmeMoved[lid] ??= new Set()), hot = new Set();
+    if (prev) bytes.forEach((b, i) => { if (prev[i] !== b) { hot.add(i); moved.add(i); } });
+    dmePrev[lid] = bytes;
+    el.querySelector("small").textContent = `${bytes.length} bytes, ${moved.size} moving`;
+    el.querySelector(".bytes").innerHTML = bytes.map((b, i) =>
+      `<span class="${hot.has(i) ? "hot" : moved.has(i) ? "moved" : ""}" title="byte ${i}">${b}</span>`).join("");
+  }
+}
+
+// ---------------------------------------------------------------- header
+let linkNow = "";
+function setLink(state, html) {
+  if (linkNow === state + html) return;
+  linkNow = state + html;
+  const n = $("#link-state");
+  n.dataset.state = state;
+  n.innerHTML = `<span class="lamp" aria-hidden="true"></span><span>${html}</span>`;
+}
+
+function renderLink() {
+  if (status.mode === "mock") setLink("sim", "<strong>Simulated car.</strong> No cable needed.");
+  else setLink(status.connected ? "ok" : "", `Cable on <strong>${esc(status.port.replace("/dev/", ""))}</strong>`);
+}
+
+const VIN_YEARS = { V: 1997, W: 1998, X: 1999, Y: 2000, 1: 2001, 2: 2002, 3: 2003, 4: 2004, 5: 2005, 6: 2006, 7: 2007, 8: 2008, 9: 2009 };
+
+function renderHeader() {
+  applyProfile();
+  $("#car-name").textContent = status?.car ?? "Porsche";
+  const year = ident?.vin && VIN_YEARS[ident.vin[9]];
+  const sub = [];
+  if (year) sub.push(`${year} model year`);
+  if (ident?.vin) sub.push(`VIN ${ident.vin}`);
+  $("#car-sub").textContent = sub.length ? sub.join(", ") : status?.mode === "mock" ? "" : "Open Car info to read the VIN.";
+  document.title = `${status?.car ?? "pdiag"} diagnostics`;
+}
+
+// ---------------------------------------------------------------- states
+const waiting = (msg) => `<div class="wait">${msg}</div>`;
+
+function errorState(e) {
+  if (e.kind === "kline") {
+    return `<div class="state"><h3>The car didn't answer</h3>
+      <p>Check that the cable is plugged into the OBD port under the dashboard and the ignition is on, then select Read again.</p>
+      <details><summary>Technical detail</summary>${esc(e.message)}</details></div>`;
+  }
+  return `<div class="state"><h3>Couldn't read the car</h3><p>${esc(e.message)}</p></div>`;
+}
+
+// ---------------------------------------------------------------- report
+async function loadReport() {
+  const body = $("#report-body");
+  body.innerHTML = waiting("Reading the over-rev counters.");
+  try {
+    overRev = await api("/api/over-rev");
+    drawBands($("#bands"), overRev.ranges);
+    if (!ident) await loadIdent().catch(() => {});
+    body.innerHTML = reportHtml(overRev);
+  } catch (e) {
+    body.innerHTML = e.kind === "not_decoded"
+      ? `<div class="state"><h3>Over-rev counters can't be read yet</h3><p>${esc(e.message)}</p>
+         <p>Live data and fault codes work today.</p></div>`
+      : errorState(e);
+  }
+}
+
+function reportHtml(d) {
+  const by = Object.fromEntries(d.ranges.map((r) => [r.range, r]));
+  const sum = (ids) => ids.reduce((a, i) => a + (by[i]?.ignitions ?? 0), 0);
+  const low = sum([1, 2]), r3 = sum([3]), high = sum([4, 5, 6]);
+  const ago = (r) => (r?.last_hour == null ? null : d.engine_hours - r.last_hour);
+
+  let sev, headline, sub;
+  if (high) {
+    const agos = [4, 5, 6].map((i) => ago(by[i])).filter((x) => x != null);
+    sev = "serious";
+    headline = `${fmt(high)} ignitions recorded in ranges 4 to 6.`;
+    sub = `${agos.length ? `The most recent was ${fmt(Math.min(...agos), 1)} engine hours ago. ` : ""}These usually come from a missed downshift that spins the engine past its limit. Have the valvetrain inspected before buying or tracking this car.`;
+  } else if (r3) {
+    sev = "caution";
+    headline = `No serious over-revs, but ${fmt(r3)} ignitions in range 3.`;
+    sub = `${ago(by[3]) == null ? "" : `The last one was ${fmt(ago(by[3]), 1)} engine hours ago. `}Range 3 is past the rev limiter, so the accelerator alone didn't put the engine there. Ask the owner about it.`;
+  } else {
+    sev = "ok";
+    headline = "Rev limiter use only. No mechanical over-revs recorded.";
+    sub = `${fmt(low)} ignitions in ranges 1 and 2, which is what hitting the limiter under power looks like.`;
+  }
+
+  const max = Math.max(...d.ranges.map((r) => r.ignitions), 1);
+  const rows = d.ranges.map((r) => {
+    const s = severity(r.range, r.ignitions);
+    const w = r.ignitions ? Math.max(2, Math.sqrt(r.ignitions / max) * 100) : 0;
+    const span = r.rpm_to ? `${fmt(r.rpm_from)}–${fmt(r.rpm_to)}` : `Over ${fmt(r.rpm_from)}`;
+    const a = ago(r);
+    return `<tr>
+      <td class="r">${r.range}<small class="speed-m">${span} rpm</small></td>
+      <td class="speed">${span} rpm</td>
+      <td class="count">${r.ignitions
+        ? `<div class="bar"><i style="width:${w}%" data-sev="${s}"></i><b>${fmt(r.ignitions)}</b></div>`
+        : `<span class="zero">None</span>`}</td>
+      <td>${a == null ? `<span class="zero">Never</span>`
+        : `${fmt(a, 1)} h ago<span class="when-full"> <span class="zero">at ${fmt(r.last_hour, 1)} h</span></span>`}</td>
+    </tr>`;
+  }).join("");
+
+  const read = [`Read at ${fmt(d.engine_hours, 1)} engine hours`];
+  if (ident?.vin) read.push(`VIN ${esc(ident.vin)}`);
+
+  return `
+    ${status?.mode === "mock" ? `<p class="sim-note">This report uses simulated data. The range boundaries are placeholders until they're decoded from a real engine computer.</p>` : ""}
+    <div class="verdict" data-sev="${sev}">
+      <div><p class="headline">${headline}</p><p class="sub">${sub}</p><p class="sub">${read.join(", ")}.</p></div>
+    </div>
+    <div class="table-scroll"><table class="ranges">
+      <thead><tr><th>Range</th><th class="speed">Engine speed</th><th>Ignitions</th><th>Last recorded</th></tr></thead>
+      <tbody>${rows}</tbody>
+    </table></div>
+    <div class="explain">
+      <p>The engine computer counts every ignition that happens above the rev limit, in six speed ranges.</p>
+      <p>Ranges 1 and 2 come from hitting the limiter under power. That's normal driving. Ranges 3 to 6 can't be reached with the accelerator, because the limiter cuts fuel first. They mean the wheels drove the engine faster, usually through a missed downshift.</p>
+    </div>`;
+}
+
+// ---------------------------------------------------------------- codes
+async function loadCodes() {
+  const body = $("#codes-body");
+  const btn = $("#codes-btn");
+  btn.disabled = true;
+  body.innerHTML = waiting(status?.mode === "mock" ? "Reading fault codes." : "Waking the engine computer. This takes a few seconds.");
+  try {
+    const codes = await api("/api/dtcs");
+    if (!codes.length) {
+      body.innerHTML = `<div class="state"><h3>No fault codes stored</h3><p>The engine computer's fault memory is empty.</p></div>`;
+      return;
+    }
+    body.innerHTML = `<ul class="codes">${codes.map((c) => `
+      <li>
+        <div class="code">${esc(c.code)}</div>
+        <div>
+          <div class="code-text${c.text ? "" : " unknown"}">${c.text ? esc(c.text) : "No description in pdiag yet."}</div>
+          <div class="chips">
+            ${c.lamp ? `<span class="chip lamp">Turns on the check engine light</span>` : ""}
+            <span class="chip${c.present ? " now" : ""}">${c.present ? "Present now" : "Stored, not present now"}</span>
+            <span class="raw">Raw ${esc(c.raw)}, status ${esc(c.status)}</span>
+          </div>
+        </div>
+      </li>`).join("")}</ul>`;
+  } catch (e) {
+    body.innerHTML = errorState(e);
+  } finally {
+    btn.disabled = false;
+  }
+}
+
+// ---------------------------------------------------------------- info
+async function loadIdent() {
+  ident = await api("/api/ident");
+  status = { ...status, ...ident };
+  renderHeader();
+  renderLink();
+  return ident;
+}
+
+async function loadInfo() {
+  const body = $("#info-body");
+  const btn = $("#info-btn");
+  btn.disabled = true;
+  body.innerHTML = waiting("Reading the engine computer.");
+  try {
+    const d = await loadIdent();
+    const rows = [
+      ["VIN", d.vin ?? "Not reported", "big"],
+      ["Engine computer software", d.software ?? "Not reported"],
+      ["Engine computer address", d.dme_address],
+      ["Engine computer keybytes", d.dme_keybytes],
+      ["Generic OBD protocol", d.generic_protocol ?? "Not checked yet. Open Live to check it."],
+      ["Connection", d.mode === "mock" ? "Simulated car" : `KKL cable on ${d.port}`],
+    ];
+    const extra = Object.entries(d.raw ?? {}).filter(([k]) => !["90", "9B"].includes(k));
+    for (const [k, v] of extra) rows.push([`Identification ${k}`, v]);
+    body.innerHTML = `<dl class="info">${rows.map(([k, v, cls]) =>
+      `<dt>${esc(k)}</dt><dd${cls ? ` class="${cls}"` : ""}>${esc(v ?? "–")}</dd>`).join("")}</dl>`;
+  } catch (e) {
+    body.innerHTML = errorState(e);
+  } finally {
+    btn.disabled = false;
+  }
+}
+
+// ---------------------------------------------------------------- router
+const loaded = {};
+const VIEWS = { live: null, report: loadReport, codes: loadCodes, dme: null, info: loadInfo };
+
+function route() {
+  const v = location.hash.slice(1) in VIEWS ? location.hash.slice(1) : "live";
+  for (const k in VIEWS) $(`#view-${k}`).hidden = k !== v;
+  document.querySelectorAll(".tabs a").forEach((a) => {
+    if (a.dataset.view === v) a.setAttribute("aria-current", "page");
+    else a.removeAttribute("aria-current");
+  });
+  // One K-line session at a time: only stream while Live is open.
+  if (v === "live") startLive(); else stopLive();
+  if (v === "dme") startDme(); else stopDme();
+  if (VIEWS[v] && !loaded[v]) { loaded[v] = true; VIEWS[v](); }
+}
+
+function unitToggle() {
+  const note = $("#live-note");
+  const b = document.createElement("button");
+  b.type = "button";
+  b.className = "btn";
+  b.style.marginLeft = "12px";
+  const label = () => (b.textContent = units === "us" ? "Show °C and km/h" : "Show °F and mph");
+  label();
+  b.onclick = () => {
+    units = units === "us" ? "metric" : "us";
+    store.set("pdiag-996-design-units", units);
+    label();
+    buildReadouts();
+    for (const k in hist) hist[k] = [];
+    buildDials();
+    updateDials(lastValues);
+    renderAll(lastValues);
+  };
+  note.after(b);
+}
+
+async function init() {
+  buildTach();
+  buildDials();
+  buildReadouts();
+  unitToggle();
+  requestAnimationFrame(animate);
+  $("#print-btn").onclick = () => window.print();
+  $("#codes-btn").onclick = loadCodes;
+  $("#info-btn").onclick = loadInfo;
+  window.addEventListener("hashchange", route);
+  try {
+    status = await api("/api/status");
+    renderLink();
+    renderHeader();
+  } catch {
+    setLink("err", "<strong>pdiag isn't running.</strong> Start it with <code>pdiag ui</code>.");
+  }
+  if (status?.mode === "mock") {
+    // Simulated car answers instantly; fill the header and dial bands up front.
+    api("/api/over-rev").then((d) => { overRev = d; drawBands($("#bands"), d.ranges); }).catch(() => {});
+    loadIdent().catch(() => {});
+  }
+  route();
+}
+
+
+// 996-inspired instruments. All values retain the existing read-only pdiag source.
+function dialSurface(s, c, r, id) {
+  const defs=svg('defs',{},s);
+  for(const [name,stops] of Object.entries({rim:[['0%','#4d5357'],['22%','#171b1e'],['52%','#080b0d'],['85%','#303539'],['100%','#090c0e']],face:[['0%','#343b40'],['45%','#252b30'],['100%','#181d21']],hub:[['0%','#51595c'],['45%','#2c3336'],['100%','#101517']]})) {
+    const g=svg('linearGradient',{id:`${name}-${id}`,x1:'0',y1:'0',x2:name==='hub'?'1':'0',y2:'1'},defs);
+    stops.forEach(([offset,color])=>svg('stop',{offset,'stop-color':color},g));
+  }
+  svg('circle',{cx:c,cy:c,r,fill:`url(#rim-${id})`,stroke:'#090b0d','stroke-width':2},s);
+  svg('circle',{cx:c,cy:c,r:r-5,fill:'none',stroke:'#747d80','stroke-opacity':'.24','stroke-width':1},s);
+  svg('circle',{cx:c,cy:c,r:r-10,fill:'#090c0e',stroke:'#020405','stroke-width':3},s);
+  svg('circle',{cx:c,cy:c,r:r-15,fill:`url(#face-${id})`,stroke:'#454c50','stroke-width':1.2},s);
+  svg('path',{d:`M ${c-r+19} ${c} A ${r-19} ${r-19} 0 0 1 ${c+r-19} ${c}`,fill:'none',stroke:'#c6d0d2','stroke-opacity':'.05','stroke-width':3},s);
+}
+function dialText(s,text,x,y,cls,extra={}){const t=svg('text',{x,y,'text-anchor':'middle',class:cls,...extra},s);t.textContent=text;return t}
+function needleShape(s,c,length,id){
+  const g=svg('g',{},s);
+  svg('path',{d:`M${c-3} ${c+12} L${c-3.3} ${c-18} L${c-.8} ${c-length} Q${c} ${c-length-3} ${c+.8} ${c-length} L${c+3.3} ${c-18} L${c+3} ${c+12}Z`,class:'t-needle'},g);
+  svg('circle',{cx:c,cy:c,r:id==='tach'?18:13,fill:`url(#hub-${id})`,stroke:'#0d1113','stroke-width':1.5},s);
+  svg('path',{d:`M${c-11} ${c-7} Q${c} ${c-18} ${c+10} ${c-8}`,fill:'none',stroke:'#80898c','stroke-opacity':'.2','stroke-width':1},s);
+  return g;
+}
+function buildTach(){
+  const s=$('#tach');s.replaceChildren();dialSurface(s,200,197,'tach');
+  const p=(v,r)=>{const a=(-115+v/8000*230)*Math.PI/180;return[200+r*Math.sin(a),200-r*Math.cos(a)]};
+  const [x0,y0]=p(REDLINE,166),[x1,y1]=p(8000,166);
+  redArc=svg('path',{d:`M${x0} ${y0} A166 166 0 0 1 ${x1} ${y1}`,class:'t-red'},s);
+  for(let v=0;v<=8000;v+=200){
+    const major=v%1000===0;const [x,y]=p(v,166),[xx,yy]=p(v,major?152:159);
+    svg('line',{x1:x,y1:y,x2:xx,y2:yy,class:'t-tick','stroke-width':major?4:2,style:v>=REDLINE?'stroke:#e95b41':''},s);
+    if(major&&v>0&&v<8000){const [tx,ty]=p(v,131);dialText(s,v/1000,tx,ty+10,'t-num',{'textLength':v===1?17:29,lengthAdjust:'spacingAndGlyphs'});}
+  }
+  dialText(s,'targa',200,157,'t-x',{style:'font:italic 23px Georgia;fill:#aeb8b7;letter-spacing:-1px;opacity:.75'});
+  dialText(s,'1/MIN × 1000',200,241,'t-x');
+  svg('path',{d:'M 75 286 Q 200 216 325 286 Q 310 351 200 357 Q 90 351 75 286 Z',fill:'#080e11',stroke:'#111719','stroke-width':7},s);
+  svg('path',{d:'M 79 287 Q 200 224 321 287 Q 306 346 200 351 Q 94 346 79 287 Z',fill:'#182322',stroke:'#40504b','stroke-opacity':'.45','stroke-width':1.2},s);
+  dialText(s,units==='us'?'MPH':'KM/H',140,296,'t-x',{id:'digital-unit',style:'fill:#e5a06a;font-size:12px;font-style:italic'});
+  svg('g',{id:'digital-speed',class:'seven-display',transform:'translate(175 262)'},s);
+  const bands=svg('g',{id:'bands'},s);drawBands(bands,overRev?.ranges??defaultRanges());
+  needle=needleShape(s,200,163,'tach');setNeedle(shownRpm);digitalSpeed(null);
+}
+function setNeedle(rpm){needle.setAttribute('transform',`rotate(${-115+Math.min(Math.max(rpm,0),8000)/8000*230} 200 200)`);redArc.classList.toggle('hot',rpm>=REDLINE-150)}
+const segments=['M4 0H20L17 3H6Z','M21 1L19 16L16 14L18 4Z','M19 18L17 33L14 30L16 20Z','M3 34H16L13 31H5Z','M1 18L4 20L3 30L0 33Z','M3 1L6 4L5 14L1 16Z','M5 15H16L18 17L15 19H4L2 17Z'];
+const litSegments=['012345','12','01346','01236','1256','02356','023456','012','0123456','012356'];
+let lastDigital='';
+function digitalSpeed(v){
+  const box=$('#digital-speed');if(!box)return;
+  const str=v==null?'---':String(Math.min(999,Math.max(0,Math.round(v)))).padStart(3,' ');
+  if(str===lastDigital&&box.childNodes.length)return;
+  lastDigital=str;
+  // Build segments once; each frame only changes the segments that changed.
+  if(!box.childNodes.length){
+    for(let i=0;i<3;i++){
+      const g=svg('g',{transform:`translate(${i*27} 0)`},box);
+      segments.forEach(d=>svg('path',{d,fill:'#f3a366',opacity:'.045'},g));
+    }
+  }
+  [...str].forEach((n,i)=>{
+    const active=n==='-'?'6':n===' '?'':litSegments[Number(n)];
+    [...box.childNodes[i].childNodes].forEach((path,j)=>{
+      const opacity=active?.includes(String(j))?'1':'.045';
+      if(path.getAttribute('opacity')!==opacity)path.setAttribute('opacity',opacity);
+    });
+  });
+  box.setAttribute('aria-label',v==null?'Speed unavailable':`${Math.round(v)} ${units==='us'?'mph':'km/h'}`);
+}
+function buildDial(d){
+  const s=$(`#${d.id}`);s.replaceChildren();const C=150,id=d.id;dialSurface(s,C,147,id);
+  const speed=d.key==='speed',small=d.key==='intake_temp'||d.key==='engine_load';
+  const [lo,hi,major,minor]=speed?(units==='us'?[0,200,25,5]:[0,300,50,10]):d.range();
+  const sweep=speed?250:240,half=sweep/2;
+  const point=(v,r)=>{const a=(-half+(v-lo)/(hi-lo)*sweep)*Math.PI/180;return[C+r*Math.sin(a),C-r*Math.cos(a)]};
+  for(let v=lo;v<=hi+1e-6;v+=minor){const big=Math.abs((v-lo)/major-Math.round((v-lo)/major))<1e-6;const [x,y]=point(v,119),[xx,yy]=point(v,big?109:114);svg('line',{x1:x,y1:y,x2:xx,y2:yy,class:'t-tick','stroke-width':big?2.8:1.5},s);if(big&&(!speed||v<hi)){const[tx,ty]=point(v,speed?96:91);dialText(s,Math.round(v),tx,ty+6,'d-num',{style:small?'font-size:17px':'font-size:18px'});}}
+  if(d.hot){const[x,y]=point(d.hot(),119),[xx,yy]=point(hi,119);svg('path',{d:`M${x} ${y} A119 119 0 0 1 ${xx} ${yy}`,class:'t-red'},s)}
+  dialText(s,d.label.toUpperCase(),small?(d.key==='intake_temp'?C-17:C+17):C,speed?184:183,'d-label',{style:small?'font-size:8px;letter-spacing:1px':''});
+  svg('path',{d:'M 65 218 Q150 185 235 218 Q223 261 150 266 Q77 261 65 218 Z',fill:'#111b1b',stroke:'#090e10','stroke-width':4},s);
+  const val=dialText(s,'–',C,239,'d-value');dialText(s,d.unit().toUpperCase(),C,254,'d-unit',{style:'fill:#c88b5e;font-size:9px'});
+  const n=needleShape(s,C,115,id);
+  const st=dialState[id]??{target:null,shown:null};Object.assign(st,{needle:n,val,lo,hi,sweep,C});dialState[id]=st;drawDial(d,st);
+}
+const baseUpdateDials=updateDials;
+updateDials=function(values){
+  baseUpdateDials(values);
+  $('#digital-unit').textContent=units==='us'?'MPH':'KM/H';
+  const missing=[];
+  for(const d of DIALS){
+    const unavailable=values[d.key]==null;
+    $(`#${d.id}`).classList.toggle('unavailable',unavailable);
+    $(`#${d.id}`).setAttribute('aria-label',unavailable?`${d.label}: no reading yet`:`${d.label}: ${fmt(d.conv?d.conv(values[d.key]):values[d.key])} ${d.unit()}`);
+    if(unavailable)missing.push(d.label.toLowerCase());
+  }
+  $('#digital-speed').classList.toggle('unavailable',values.speed==null);
+  $('#freshness').textContent=missing.length?'Waiting for '+missing.join(', '):'Receiving data';
+  lastReceived=Date.now();
+};
+const baseUnitToggle=unitToggle;
+unitToggle=function(){baseUnitToggle();const b=$('#live-note').nextElementSibling;b.style.marginLeft='0';$('#unit-slot').append(b)};
+let lastReceived=0;
+const baseSetStale=setStale;
+setStale=function(on){baseSetStale(on);$('#tach').setAttribute('aria-label',on?'Tachometer, readings stale':'Tachometer');if(on)$('#freshness').textContent='Signal lost · readings held';};
+setInterval(()=>{if(liveWanted&&lastReceived&&Date.now()-lastReceived>8000){setStale(true);setLink('err','<strong>Waiting for telemetry.</strong> Last readings are held.')}},2000);
+$('#focus-btn').onclick=()=>{const on=document.body.classList.toggle('focus-mode');$('#focus-btn').setAttribute('aria-pressed',on);$('#focus-btn').innerHTML=on?'↙ <span class="focus-label">Exit focus</span>':'⛶ <span class="focus-label">Focus</span>'};
+$('#night-btn').onclick=()=>{const on=document.body.classList.toggle('night-mode');$('#night-btn').setAttribute('aria-pressed',on)};
+document.addEventListener('keydown',e=>{if(e.key==='Escape'&&document.body.classList.contains('focus-mode'))$('#focus-btn').click()});
+window.addEventListener('hashchange',()=>{if(location.hash!=='#live'){document.body.classList.remove('focus-mode');$('#focus-btn').setAttribute('aria-pressed','false');$('#focus-btn').innerHTML='⛶ <span class="focus-label">Focus</span>'}});
+// Full live readings stay visible below the instruments.
+renderAll=function(values){
+  lastValues=values;
+  const keys=Object.keys(values).sort((a,b)=>(ORDER.indexOf(a)+1||99)-(ORDER.indexOf(b)+1||99)||a.localeCompare(b));
+  const body=$('#all');
+  if(keys.join()!==allKeys){
+    allKeys=keys.join();
+    body.replaceChildren(...keys.map(key=>{
+      const row=document.createElement('tr'),label=document.createElement('th'),value=document.createElement('td');
+      label.scope='row';label.textContent=LABELS[key]??key.replaceAll('_',' ');value.dataset.key=key;
+      row.append(label,value);return row;
+    }));
+  }
+  for(const cell of body.querySelectorAll('td[data-key]')){
+    const value=showValue(cell.dataset.key,values[cell.dataset.key]);if(cell.textContent!==value)cell.textContent=value;
+  }
+};
+function syncInstrumentControls(){ $('.cockpit-actions').hidden=!!location.hash&&location.hash!=='#live'; }
+window.addEventListener('hashchange',syncInstrumentControls);
+syncInstrumentControls();
+// Preview data is opt-in and always explicitly labelled; live mode never invents data.
+const previewMode=new URLSearchParams(location.search).has('demo')||location.protocol==='file:';
+let demoTimer;
+if(previewMode){
+  const profile={code:'996',name:'911 (996)',redline:7200,over_rev_from:[7300,7600,7900,8200,8500,8800]};
+  const demoStatus={mode:'mock',car:'996 Targa',connected:true,profile,units:{rpm:'rpm',coolant_temp:'C',intake_temp:'C',speed:'km/h',engine_load:'%',throttle:'%',maf:'g/s',timing_advance:'deg',stft_b1:'%',ltft_b1:'%'}};
+  api=async function(path){if(path==='/api/status')return demoStatus;if(path==='/api/ident')return {...demoStatus,vin:null,software:'Design preview',dme_address:'0x11',dme_keybytes:'—'};if(path==='/api/dtcs')return [];if(path==='/api/over-rev')throw Object.assign(new Error('Over-rev history is not available in this design preview.'),{kind:'not_decoded'});throw new Error('Unavailable in preview')};
+  renderLink=function(){setLink('sim','<strong>Design preview</strong> · Simulated readings')};
+  startLive=function(){liveWanted=true;if(demoTimer)return;const tick=()=>{const t=Date.now()/1700;const values={rpm:2370+Math.sin(t)*120,speed:64,coolant_temp:95,intake_temp:32,engine_load:26+Math.sin(t)*4,throttle:18,maf:11,timing_advance:43.5,stft_b1:3.2,ltft_b1:1.6};targetRpm=values.rpm;setStale(false);renderLink();updateReadouts(values);updateDials(values);renderAll(values);$('#freshness').textContent='Simulated readings'};tick();demoTimer=setInterval(tick,300)};
+  stopLive=function(){liveWanted=false;clearInterval(demoTimer);demoTimer=null};
+  startDme=function(){$('#dme-body').innerHTML='<div class="state"><h3>Live connection required</h3><p>Raw engine data is available when connected to pdiag.</p></div>'};
+}
+window.addEventListener('pagehide',()=>{stopLive();stopDme()});
+let clearBusy=false, clearAvailable=false;
+async function loadClearCapabilities(){
+  const button=$('#clear-codes-btn'),note=$('#clear-codes-note');
+  if(previewMode){note.textContent='Code clearing requires a live connection. Preview mode never writes to the car.';return;}
+  try{
+    const capabilities=await api('/api/capabilities');
+    clearAvailable=capabilities.clear_emissions_codes===true;
+    button.disabled=!clearAvailable;
+    note.textContent=clearAvailable?'Clear engine emissions codes with the ignition on and engine off. You will be asked to confirm.':'Code clearing is not available on this backend.';
+    if(clearAvailable)document.querySelector('.colophon p').textContent='Live diagnostics. Clearing engine codes requires explicit confirmation.';
+  }catch{note.textContent='Code clearing needs the updated backend. Live diagnostics remain available.';}
+}
+$('#clear-codes-btn').onclick=()=>{if(clearAvailable&&!clearBusy)$('#clear-dialog').showModal();};
+$('#clear-cancel').onclick=()=>$('#clear-dialog').close();
+$('#clear-dialog').addEventListener('cancel',event=>{if(clearBusy)event.preventDefault();});
+$('#clear-confirm').onclick=async()=>{
+  if(clearBusy||!clearAvailable)return;
+  clearBusy=true;
+  for(const id of ['clear-confirm','clear-cancel','clear-codes-btn','codes-btn'])$('#'+id).disabled=true;
+  $('#clear-confirm').textContent='Clearing…';
+  const resultBox=$('#clear-result');
+  resultBox.hidden=false;resultBox.textContent='Checking engine state and saving the current emissions codes…';
+  try{
+    const response=await fetch('/api/dtcs/clear',{method:'POST',headers:{'Content-Type':'application/json','X-Pdiag-Action':'clear-emissions-codes'},body:JSON.stringify({confirmed:true,request_id:crypto.randomUUID()})});
+    const result=await response.json();
+    if(!response.ok)throw new Error(result.error||'The clearing request could not be completed. Read the codes again.');
+    resultBox.textContent=result.message+(result.monitor_status?' '+result.monitor_status+'.':'')+(result.audit_saved?'':' The result could not be added to the local log.');
+    resultBox.dataset.state=result.cleared?'ok':'attention';
+    // This is a separate DME read, which may include manufacturer-specific faults
+    // outside the scope of standard OBD emissions clearing.
+    await loadCodes();
+  }catch(error){resultBox.textContent=error.message;resultBox.dataset.state='attention';}
+  finally{
+    clearBusy=false;$('#clear-dialog').close();
+    for(const id of ['clear-confirm','clear-cancel','clear-codes-btn','codes-btn'])$('#'+id).disabled=false;
+    $('#clear-confirm').textContent='Clear engine codes';
+    resultBox.scrollIntoView({block:'nearest',behavior:reduceMotion?'instant':'smooth'});
+  }
+};
+
+init().then(loadClearCapabilities);
+
+</script>
+</body>
+</html>
