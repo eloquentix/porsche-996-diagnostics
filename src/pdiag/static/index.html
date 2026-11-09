@@ -30,13 +30,20 @@
   <section id="view-live" class="view" aria-labelledby="live-h">
     <h2 id="live-h" class="sr-only">Live engine data</h2>
     <div class="live">
-      <figure class="tach-wrap">
-        <svg id="tach" viewBox="0 0 400 400" role="img" aria-label="Tachometer"></svg>
-        <figcaption>
-          <span class="rpm" id="rpm-num">0</span>
-          <span class="rpm-unit">rpm</span>
-        </figcaption>
-      </figure>
+      <div class="cluster">
+        <figure class="dial dial-sm dial-l2"><svg id="g-intake" viewBox="0 0 300 300" role="img" aria-label="Intake air temperature"></svg></figure>
+        <figure class="dial dial-md dial-l1"><svg id="g-speed" viewBox="0 0 300 300" role="img" aria-label="Road speed"></svg></figure>
+        <figure class="tach-wrap">
+          <svg id="tach" viewBox="0 0 400 400" role="img" aria-label="Tachometer"></svg>
+          <figcaption>
+            <span class="rpm" id="rpm-num">0</span>
+            <span class="rpm-unit">rpm</span>
+            <span class="lcd" id="lcd" aria-live="off"></span>
+          </figcaption>
+        </figure>
+        <figure class="dial dial-md dial-r1"><svg id="g-coolant" viewBox="0 0 300 300" role="img" aria-label="Coolant temperature"></svg></figure>
+        <figure class="dial dial-sm dial-r2"><svg id="g-load" viewBox="0 0 300 300" role="img" aria-label="Engine load"></svg></figure>
+      </div>
       <div class="readouts" id="readouts"></div>
     </div>
     <section class="all-readings" aria-labelledby="all-h">
@@ -57,8 +64,12 @@
   <section id="view-codes" class="view" aria-labelledby="codes-h" hidden>
     <div class="view-head">
       <h2 id="codes-h">Fault codes</h2>
-      <button type="button" class="btn" id="codes-btn">Read again</button>
+      <div class="btn-row">
+        <button type="button" class="btn" id="codes-btn">Read again</button>
+        <button type="button" class="btn btn-danger" id="clear-btn">Clear fault codes</button>
+      </div>
     </div>
+    <div id="clear-result" aria-live="polite"></div>
     <div id="codes-body" aria-live="polite"></div>
   </section>
 

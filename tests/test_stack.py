@@ -844,3 +844,54 @@ def test_dme_stream_over_http():
         assert b'"blocks"' in line and b'"new": "01"' in line
     finally:
         srv.shutdown()
+
+
+# -- clearing fault codes (decision 2026-11-08: mode 04, saved first) -----------------
+def test_clear_codes_saves_first_then_clears(tmp_path):
+    import json
+    car = Car(MockCar(), mock=True)
+    res = car.clear_codes(tmp_path)
+    assert res["before"]["generic"]["codes"] == ["P0300", "P0420"]
+    assert res["before"]["dme"] and res["after"]["generic"]["codes"] == []
+    recs = [json.loads(l) for l in (tmp_path / res["log"]).read_text().splitlines()]
+    assert [r["step"] for r in recs] == ["before", "cleared", "after"]  # the record precedes the clear
+    assert recs[0]["generic"]["codes"] == ["P0300", "P0420"] and recs[0]["dme"]
+    assert car.dtcs() == []  # the DME's memory is empty too
+
+
+def test_clear_codes_aborts_when_codes_cant_be_saved(tmp_path, monkeypatch):
+    car = Car(MockCar(), mock=True)
+    sent = []
+    monkeypatch.setattr(obd, "clear_dtcs", lambda link: sent.append("04"))
+    def broken(link):
+        raise obd.BadReply("no mode 03 answer")
+    monkeypatch.setattr(obd, "read_stored_dtcs", broken)
+    with pytest.raises(obd.BadReply):
+        car.clear_codes(tmp_path)
+    assert sent == []  # nothing cleared without the record
+
+
+def _post(conn, port, body, origin=True, ctype="application/json"):
+    import json
+    headers = {"Host": f"127.0.0.1:{port}", "Content-Type": ctype}
+    if origin:
+        headers["Origin"] = f"http://127.0.0.1:{port}"
+    conn.request("POST", "/api/clear-codes", body=json.dumps(body), headers=headers)
+    r = conn.getresponse()
+    return r.status, r.read()
+
+
+def test_clear_endpoint_needs_same_origin_and_confirm(tmp_path, monkeypatch):
+    car = Car(MockCar(), mock=True)
+    calls = []
+    monkeypatch.setattr(car, "clear_codes", lambda: calls.append(1) or {"cleared": True})
+    srv, conn = _serve(car)
+    port = srv.server_address[1]
+    try:
+        assert _post(conn, port, {"confirm": True}, origin=False)[0] == 403  # e.g. another site
+        assert _post(conn, port, {"confirm": True}, ctype="text/plain")[0] == 415  # simple-form CSRF
+        assert _post(conn, port, {})[0] == 400
+        assert calls == []
+        assert _post(conn, port, {"confirm": True})[0] == 200 and calls == [1]
+    finally:
+        srv.shutdown()

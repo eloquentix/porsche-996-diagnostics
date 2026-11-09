@@ -132,10 +132,103 @@ function animate(now) {
   lastFrame = now;
   shownRpm = reduceMotion ? targetRpm : shownRpm + (targetRpm - shownRpm) * (1 - Math.exp(-dt / NEEDLE_TAU));
   setNeedle(shownRpm);
+  easeDials(dt);
   const text = fmt(Math.round(shownRpm / 10) * 10);  // the digits roll with the needle
   if (text !== shownText) { $("#rpm-num").textContent = text; shownText = text; }
   requestAnimationFrame(animate);
 }
+
+// ---------------------------------------------------------------- side dials
+// The 996 cluster: five overlapping round dials, the tach in the middle. The side dials
+// show what the engine computer reports through generic OBD; each eases like the tach.
+const DIALS = [
+  { id: "g-intake", key: "intake_temp", label: "Intake air", sweep: 240,
+    unit: () => (units === "us" ? "°F" : "°C"), conv: (v) => (units === "us" ? v * 1.8 + 32 : v),
+    range: () => (units === "us" ? [0, 200, 40, 20] : [-20, 100, 20, 10]) },
+  { id: "g-speed", key: "speed", label: "Speed", sweep: 270,
+    unit: () => (units === "us" ? "mph" : "km/h"), conv: (v) => (units === "us" ? v * 0.6214 : v),
+    range: () => (units === "us" ? [0, 180, 20, 10] : [0, 300, 40, 20]) },
+  { id: "g-coolant", key: "coolant_temp", label: "Coolant", sweep: 240,
+    unit: () => (units === "us" ? "°F" : "°C"), conv: (v) => (units === "us" ? v * 1.8 + 32 : v),
+    range: () => (units === "us" ? [100, 260, 40, 20] : [40, 130, 20, 10]),
+    hot: () => (units === "us" ? 230 : 110) },
+  { id: "g-load", key: "engine_load", label: "Load", sweep: 240,
+    unit: () => "%", range: () => [0, 100, 25, 12.5] },
+];
+const dialState = {};
+
+function buildDial(d) {
+  const s = $(`#${d.id}`);
+  if (!s) return;
+  s.replaceChildren();
+  const [lo, hi, major, minor] = d.range();
+  const C = 150, half = d.sweep / 2;
+  const a = (v) => ((-half + ((Math.min(Math.max(v, lo), hi) - lo) / (hi - lo)) * d.sweep) * Math.PI) / 180;
+  const p = (v, r) => [C + r * Math.sin(a(v)), C - r * Math.cos(a(v))];
+  svg("circle", { cx: C, cy: C, r: 147, class: "t-bezel" }, s);
+  svg("circle", { cx: C, cy: C, r: 143, class: "t-face" }, s);
+  if (d.hot) {
+    const [x0, y0] = p(d.hot(), 118), [x1, y1] = p(hi, 118);
+    svg("path", { d: `M${x0} ${y0} A118 118 0 0 1 ${x1} ${y1}`, class: "t-red" }, s);
+  }
+  for (let v = lo; v <= hi + 1e-9; v += minor) {
+    const big = Math.abs(((v - lo) / major) - Math.round((v - lo) / major)) < 1e-6;
+    const [x0, y0] = p(v, 126), [x1, y1] = p(v, big ? 108 : 118);
+    svg("line", { x1: x0, y1: y0, x2: x1, y2: y1, class: "t-tick", "stroke-width": big ? 3 : 1.3 }, s);
+    if (big) {
+      const [tx, ty] = p(v, 88);
+      const t = svg("text", { x: tx, y: ty + 9, "text-anchor": "middle", class: "d-num" }, s);
+      t.textContent = Math.round(v);
+    }
+  }
+  const lab = svg("text", { x: C, y: C - 42, "text-anchor": "middle", class: "d-label" }, s);
+  lab.textContent = d.label;
+  const val = svg("text", { x: C, y: C + 62, "text-anchor": "middle", class: "d-value" }, s);
+  const unit = svg("text", { x: C, y: C + 84, "text-anchor": "middle", class: "d-unit" }, s);
+  unit.textContent = d.unit();
+  const needle = svg("g", {}, s);
+  svg("line", { x1: C, y1: C + 18, x2: C, y2: C - 112, class: "t-needle d-needle" }, needle);
+  svg("circle", { cx: C, cy: C, r: 9, class: "t-hub" }, s);
+  const st = dialState[d.id] ?? { target: null, shown: null };
+  Object.assign(st, { needle, val, lo, hi, sweep: d.sweep, C });
+  dialState[d.id] = st;
+  drawDial(d, st);
+}
+
+function drawDial(d, st) {
+  const v = st.shown;
+  const deg = v == null ? -st.sweep / 2 : -st.sweep / 2 + ((Math.min(Math.max(v, st.lo), st.hi) - st.lo) / (st.hi - st.lo)) * st.sweep;
+  st.needle.setAttribute("transform", `rotate(${deg} ${st.C} ${st.C})`);
+  st.val.textContent = v == null ? "–" : fmt(v, 0);
+}
+
+function updateDials(values) {
+  for (const d of DIALS) {
+    const st = dialState[d.id];
+    if (!st) continue;
+    const raw = values[d.key];
+    st.target = raw == null ? null : (d.conv ? d.conv(raw) : raw);
+    if (st.target == null) { st.shown = null; drawDial(d, st); }
+    else if (st.shown == null) st.shown = st.target;
+  }
+  const lcd = [];
+  if (values.timing_advance != null) lcd.push(`${fmt(values.timing_advance, 1)}° adv`);
+  if (values.maf != null) lcd.push(`${fmt(values.maf, 1)} g/s`);
+  if (values.stft_b1 != null) lcd.push(`trim ${values.stft_b1 > 0 ? "+" : ""}${fmt(values.stft_b1, 1)}%`);
+  const text = lcd.join("  ·  ");
+  if ($("#lcd").textContent !== text) $("#lcd").textContent = text;
+}
+
+function easeDials(dt) {
+  for (const d of DIALS) {
+    const st = dialState[d.id];
+    if (!st || st.target == null || st.shown == null) continue;
+    st.shown = reduceMotion ? st.target : st.shown + (st.target - st.shown) * (1 - Math.exp(-dt / NEEDLE_TAU));
+    drawDial(d, st);
+  }
+}
+
+const buildDials = () => DIALS.forEach(buildDial);
 
 // ---------------------------------------------------------------- readouts
 const READOUTS = [
@@ -267,6 +360,7 @@ function startLive() {
     if (status) { status.connected = true; renderLink(); }
     targetRpm = msg.values.rpm;
     updateReadouts(msg.values);
+    updateDials(msg.values);
     renderAll(msg.values);
   };
 }
@@ -481,6 +575,36 @@ async function loadCodes() {
   }
 }
 
+async function clearCodes() {
+  const ok = confirm(
+    "Clear the fault codes?\n\n" +
+    "This erases the stored codes and resets the readiness monitors, the same as any OBD reader. " +
+    "The car may need some driving before it passes an emissions test, and a buyer's scan " +
+    "would show the monitors as not ready.\n\n" +
+    "pdiag saves every code and the readiness status to logs/ first.");
+  if (!ok) return;
+  const btn = $("#clear-btn"), out = $("#clear-result");
+  btn.disabled = $("#codes-btn").disabled = true;
+  out.innerHTML = waiting("Saving the codes, then clearing them.");
+  try {
+    const r = await fetch("/api/clear-codes", {
+      method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ confirm: true }),
+    });
+    const d = await r.json();
+    if (!r.ok) throw Object.assign(new Error(d.error || r.statusText), { kind: d.kind });
+    const before = d.before.generic.codes, after = d.after.generic.codes;
+    out.innerHTML = `<div class="state"><h3>${after.length ? "Some codes came back" : "Fault codes cleared"}</h3>
+      <p>Before: ${before.length ? esc(before.join(", ")) : "none stored"}${d.before.dme.length ? ` (engine computer: ${esc(d.before.dme.map((c) => c.code).join(", "))})` : ""}.
+      After: ${after.length ? esc(after.join(", ")) + ". A code that returns right away is a fault still present." : "none"}.</p>
+      <p class="raw">Saved first to logs/${esc(d.log)}</p></div>`;
+  } catch (e) {
+    out.innerHTML = errorState(e);
+  } finally {
+    btn.disabled = $("#codes-btn").disabled = false;
+  }
+  loadCodes();
+}
+
 // ---------------------------------------------------------------- info
 async function loadIdent() {
   ident = await api("/api/ident");
@@ -547,6 +671,8 @@ function unitToggle() {
     label();
     buildReadouts();
     for (const k in hist) hist[k] = [];
+    buildDials();
+    updateDials(lastValues);
     renderAll(lastValues);
   };
   note.after(b);
@@ -554,11 +680,13 @@ function unitToggle() {
 
 async function init() {
   buildTach();
+  buildDials();
   buildReadouts();
   unitToggle();
   requestAnimationFrame(animate);
   $("#print-btn").onclick = () => window.print();
   $("#codes-btn").onclick = loadCodes;
+  $("#clear-btn").onclick = clearCodes;
   $("#info-btn").onclick = loadInfo;
   window.addEventListener("hashchange", route);
   try {

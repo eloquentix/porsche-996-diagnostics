@@ -267,6 +267,14 @@ def dtc_str(code: int) -> str:
     return "PCBU"[code >> 14] + f"{(code >> 12) & 3}{code & 0xFFF:03X}"
 
 
+def clear_dtcs(link) -> None:
+    """Mode 04: clear stored codes and freeze frames, reset readiness monitors. The one
+    write pdiag sends (decision 2026-11-08, CLAUDE.md); callers save the codes first."""
+    resps = link.request(b"\x04", settle=DTC_SETTLE)
+    if not any(r[:1] == b"\x44" for r in resps):
+        raise _no_answer(resps, 0x04, "no mode 04 answer")
+
+
 def read_stored_dtcs(link) -> list[str]:
     """Mode 03. Payload 43 then 2-byte DTCs, zero-padded."""
     codes = []

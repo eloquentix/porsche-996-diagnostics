@@ -1,6 +1,7 @@
 """Local web UI: stdlib HTTP server, JSON API, Server-Sent Events for live data.
 
 JSON: /api/status, /api/ident, /api/dtcs, /api/over-rev.
+POST /api/clear-codes: saves the codes to logs/, then clears them (generic OBD mode 04).
 Streams: /api/live (decoded OBD readings), /api/dme-live (raw DME data blocks).
 Only requests addressed to 127.0.0.1 or localhost are answered (DNS rebinding).
 """
@@ -69,6 +70,27 @@ def make_handler(car: Car):
             self.send_header("Content-Length", str(len(data)))
             self.end_headers()
             self.wfile.write(data)
+
+        def do_POST(self):
+            """The one write: clearing fault codes. Same-origin only (Host and Origin
+            must be this server), JSON body {"confirm": true}."""
+            port = self.server.server_address[1]
+            mine = (f"127.0.0.1:{port}", f"localhost:{port}")
+            if self.headers.get("Host") not in mine:
+                return self._json(403, {"error": "forbidden host"})
+            if self.headers.get("Origin") not in tuple(f"http://{h}" for h in mine):
+                return self._json(403, {"error": "forbidden origin"})
+            if self.path.split("?")[0] != "/api/clear-codes":
+                return self._json(404, {"error": "not found"})
+            if not self.headers.get("Content-Type", "").startswith("application/json"):
+                return self._json(415, {"error": "JSON required"})
+            try:
+                body = json.loads(self.rfile.read(int(self.headers.get("Content-Length", "0") or 0)) or b"{}")
+            except ValueError:
+                body = {}
+            if body.get("confirm") is not True:
+                return self._json(400, {"error": "confirm required"})
+            return self._api(car.clear_codes)
 
         def _stream(self, read, shape):
             """Server-Sent Events: one message per read, until the page goes away."""

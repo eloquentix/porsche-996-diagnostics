@@ -88,6 +88,7 @@ class MockCar(QueueTransport):
         self.addr: int | None = None
         self.dynamic = dynamic  # False = fixed idle values (tests)
         self.vin = MOCK_VINS[model].encode()
+        self.cleared = False  # set by a mode 04 clear
         self.tcu = tcu  # a second ECU also answers generic OBD (answers first)
         self.silent = silent  # request prefixes (e.g. b"\x01\x10") nobody answers
         self.t0 = time.monotonic()
@@ -153,7 +154,10 @@ class MockCar(QueueTransport):
             vals = self._pid_bytes()
             return bytes([0x41, pid]) + vals[pid] if pid in vals else None
         if d[0] == 0x03:
-            return b"\x43\x03\x00\x04\x20\x00\x00"  # P0300, P0420
+            return b"\x43" + bytes(6) if self.cleared else b"\x43\x03\x00\x04\x20\x00\x00"  # P0300, P0420
+        if d[0] == 0x04:
+            self.cleared = True
+            return b"\x44"
         return None
 
     # The PID 00 bitmap a real 2002 996 (ME7.8) sends: 01 03-09 0C-15 18 19 1C.
@@ -208,7 +212,7 @@ class MockCar(QueueTransport):
         if sid == 0x18:
             if d[1] != 0x00:  # like the 996 ME7.8: only status 00 is accepted
                 return [bytes([0x7F, sid, 0x12])]
-            return [b"\x58\x02\x03\x00\xE0\x11\x28\x20"]
+            return [b"\x58\x00"] if self.cleared else [b"\x58\x02\x03\x00\xE0\x11\x28\x20"]
         if sid == 0x21:
             lid = d[1]
             if lid == 0xEE:  # exercises responsePending handling

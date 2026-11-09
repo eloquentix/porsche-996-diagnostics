@@ -12,8 +12,10 @@ the DME's raw Porsche data blocks. Both can log every read as JSONL.
 from __future__ import annotations
 
 import json
+import os
 import threading
 import time
+from pathlib import Path
 from typing import TextIO
 
 from . import kwp2000, models, obd
@@ -272,6 +274,44 @@ class Car:
                 })
             return out
         return self._guard(run)
+
+    def clear_codes(self, log_dir: Path = Path(__file__).resolve().parents[2] / "logs") -> dict:
+        """Save every stored code, the readiness status and the DME's codes to
+        logs/<time>-clear.jsonl, then clear with generic OBD mode 04 (what any OBD reader
+        sends), then read back. Nothing is cleared unless the record is on disk first."""
+        log_dir.mkdir(exist_ok=True)
+        path = log_dir / f"{time.strftime('%Y%m%d-%H%M%S')}-clear.jsonl"
+
+        def write(rec: dict) -> None:
+            with path.open("a") as f:
+                f.write(json.dumps(rec) + "\n")
+                f.flush()
+                os.fsync(f.fileno())  # on disk before the clear goes out
+
+        dme_before = self.dtcs()  # the DME's own view (KWP 0x18), raises if unreadable
+
+        def generic_state(link) -> dict:
+            codes = obd.read_stored_dtcs(link)
+            try:
+                readiness, raw = obd.read_pid(link, 0x01)
+                return {"codes": codes, "readiness": readiness, "readiness_raw": raw.hex()}
+            except KLineError as e:
+                return {"codes": codes, "readiness": None, "readiness_error": str(e)}
+
+        def run():
+            link = self._obd()
+            before = generic_state(link)
+            write({"t": round(time.time(), 1), "step": "before", "vin": self.info.get("vin"),
+                   "generic": before, "dme": dme_before})
+            obd.clear_dtcs(link)
+            write({"t": round(time.time(), 1), "step": "cleared", "service": "mode 04"})
+            after = generic_state(link)
+            write({"t": round(time.time(), 1), "step": "after", "generic": after})
+            return before, after
+
+        before, after = self._guard(run)
+        return {"cleared": True, "before": {"generic": before, "dme": dme_before},
+                "after": {"generic": after}, "log": path.name}
 
     def ident(self) -> dict:
         def run():

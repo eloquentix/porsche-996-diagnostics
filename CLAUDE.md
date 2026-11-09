@@ -19,9 +19,12 @@ step so one run produces enough trace data to debug from.
 
 ## Hard rules
 1. **Read-only.** No services that write, code, adapt, flash or clear (no 0x14, 0x2E, 0x3B,
-   0x31 routines, 0x34+ download, 0x27 security access). Clearing DTCs is excluded on
-   purpose too: it erases evidence, and for a pre-purchase product it's a fraud vector.
-   Revisit only with an explicit decision recorded here.
+   0x31 routines, 0x34+ download, 0x27 security access). One exception, below.
+   **Decision 2026-11-08 (Radu): clearing fault codes is allowed**, the way any standard
+   OBD reader does it: generic OBD mode 04 only (never KWP 0x14), behind an "are you sure"
+   dialog, and only after every stored code, the readiness status and the DME's codes are
+   saved to `logs/*-clear.jsonl`. Reasons it stays guarded: clearing erases evidence and
+   resets readiness monitors (a pre-purchase red flag), so the record must survive.
 2. **Clean-room.** Decode only from our own captures/experiments. Never use leaked PIWIS
    data, Durametric binaries/tables, or other proprietary material. Record the source of
    each decoded identifier in `docs/PROTOCOL.md`.

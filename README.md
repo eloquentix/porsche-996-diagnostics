@@ -86,3 +86,7 @@ pdiag is a project by [Eloquentix](https://eloquentix.com).
 ## License
 
 [GPL-3.0-or-later](LICENSE).
+
+## Clearing fault codes
+
+The Fault codes tab has a **Clear fault codes** button (decision 2026-11-08). It asks first, saves every stored code, the readiness status and the engine computer's own codes to `logs/<time>-clear.jsonl`, then clears with generic OBD mode 04 (what any OBD reader sends) and reads back. Clearing resets the readiness monitors: the car may need some driving before an emissions test.
