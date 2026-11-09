@@ -7,19 +7,15 @@ and Cayenne 955 (roughly 1997–2008). A $20 cable, a Mac, and this.
 
 ## Why this exists
 
-If you own one of these cars, or are about to buy one, the question that matters most
-is one you can't answer with a normal OBD reader: **has this engine been over-revved?**
-A missed shift (fourth into second at speed) spins the engine past redline and can bend
-valves. The engine computer remembers: it counts ignitions in six over-rev ranges and
-when the last one happened. A seller who knows this will clear the fault codes; they
-can't clear that counter.
+To see what these cars' engine computers know on a Mac.
 
-Today you read it with **Durametric** (Windows only, licensed to a handful of VINs) or a
-dealer's **PIWIS**. Generic OBD apps don't see it at all: they read emissions data, not
-Porsche data.
+The tools that read a 996's Porsche data, Durametric and the dealer's PIWIS, run on
+Windows only. A Mac owner needs a Windows laptop or a virtual machine just to read a fault
+code or watch live engine data. Generic OBD apps work anywhere, but they only see emissions
+data, not the engine computer's own Porsche data.
 
-pdiag is the open alternative: modern, read-only by design, runs on a Mac, and every
-step is logged so findings can be checked.
+pdiag runs natively on macOS with a $20 cable. It's open source, read-only by design, and
+logs every byte, so anything it finds can be checked.
 
 ## What works today, and what doesn't yet
 
@@ -32,7 +28,7 @@ Tested on a 2002 911 (996) Targa, US spec, Bosch ME7.8 engine computer.
 | Clearing fault codes (asks first, saves every code before clearing) | Works |
 | Engine computer identification (VIN, part and software numbers) | Works |
 | The engine computer's 14 Porsche-specific data blocks, raw | Works (shown and logged; not all decoded) |
-| **Over-rev counters** | **Not decoded yet.** This is the project's main goal; see "How you can help". The demo shows simulated counts. |
+| Over-rev counters (ignitions in each of the six over-rev ranges) | Not decoded yet; see "How you can help". The demo shows simulated counts. |
 | Other models (986, 987.1, 997.1, 955) | Profiles exist, untested on a car |
 
 ## When it's useful now
