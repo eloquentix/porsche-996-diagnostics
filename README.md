@@ -1,4 +1,4 @@
-# pdiag
+# pdiag: Porsche 996 and Boxster diagnostics for Mac
 
 Open diagnostics for K-line era water-cooled Porsches: 986 Boxster, 996, 997.1, 987.1
 and Cayenne 955 (roughly 1997–2008). A $20 cable, a Mac, and this.
@@ -59,8 +59,8 @@ Tested on a 2002 911 (996) Targa, US spec, Bosch ME7.8 engine computer.
 
 ```sh
 brew install uv                          # or: curl -LsSf https://astral.sh/uv/install.sh | sh
-git clone https://github.com/radurosu/porsche-kline-diag.git
-cd porsche-kline-diag
+git clone https://github.com/eloquentix/porsche-996-diagnostics.git
+cd porsche-996-diagnostics
 uv sync
 uv run pdiag --mock ui                   # try it with the simulated car first
 uv run pytest                            # optional: the test suite
@@ -126,6 +126,40 @@ contribution.
 
 Open an issue with the files attached, or reach us through [Eloquentix](https://eloquentix.com).
 Please send traces privately or remove the VIN first (it's in the identification replies).
+
+## Buying or selling one of these cars?
+
+We're building **verified pre-purchase reports**: plug in for five minutes and get a
+tamper-evident link with the over-rev ranges, fault codes and identification, one that a
+buyer can trust more than a screenshot. Email
+[info@eloquentix.com](mailto:info@eloquentix.com?subject=Porsche%20pre-purchase%20report)
+to hear when it's ready, or if you run a shop and want it for inspections.
+
+## FAQ
+
+**Is there a Durametric alternative for Mac?**
+pdiag runs on macOS with a $20 FTDI KKL cable. Today it reads live data, fault codes,
+identification and the engine computer's Porsche data. The over-rev report, Durametric's
+best-known feature, isn't decoded yet.
+
+**Can I check a 996 or Boxster for over-revs before buying?**
+Not with pdiag yet; today that takes Durametric or a dealer. pdiag already helps with the
+rest: fault codes, and readiness monitors that show whether codes were cleared recently.
+
+**Which cable do I need? Will a Bluetooth ELM327 work?**
+An FTDI-based KKL USB cable ("VAG-COM 409.1"). ELM327 dongles hide the raw K-line these
+cars use, and CH340-based cables can't time the wake-up reliably.
+
+**Which cars does it support?**
+Water-cooled K-line Porsches, about 1997–2008: 986 Boxster, 996, 997.1, 987.1 and Cayenne 955.
+Tested on a 2002 996 with a Bosch ME7.8 engine computer; the others need testers.
+
+**Can it damage the car?**
+It only reads, except clearing fault codes, which asks first and saves every code. It never
+codes, adapts, flashes or asks for security access.
+
+**Does it work on Windows or Linux?**
+Not yet: macOS only. Linux should need small changes; help is welcome.
 
 ## Docs
 

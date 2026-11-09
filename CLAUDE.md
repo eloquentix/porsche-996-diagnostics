@@ -7,7 +7,7 @@ Open, modern diagnostic tool for K-line era water-cooled Porsches (986/996/997.1
 ~1997–2008). Goal: a genuinely good alternative to **Durametric** (the incumbent owner tool;
 dated Windows UI, VIN licensing). Dealer tools for reference: **PIWIS** (current) and **PST2**
 (original 996-era tester). Open source, GPL-3.0-or-later. Repo:
-https://github.com/radurosu/porsche-kline-diag
+https://github.com/eloquentix/porsche-996-diagnostics
 Product/business strategy is private and lives outside the repo at `../porsche-private/STRATEGY.md`
 (local only). Never copy it into this repo.
 
